@@ -53,12 +53,21 @@ int main(int ac, char **av) {
 			return 1;
 		}
 		socket_data_size = sizeof(socket_data);
-		connection_fd = accept(socket_fd, &socket_data, &socket_data_size);
-		if (connection_fd == -1) {
-			std::cerr << "Connection has been aborted due to an error!" << std::endl;
-			return 1;
+		while (1) {
+			connection_fd = accept(socket_fd, &socket_data, &socket_data_size);
+			if (connection_fd == -1) {
+				std::cerr << "Connection has been aborted due to an error!" << std::endl;
+				return 1;
+			}
+			char buff[4096];
+			std::string holder;
+			_bzero(&buff, 4096);
+			recv(connection_fd, &buff, 4096, MSG_PEEK);
+			std::cout << buff << std::endl;
+
+			holder = buff;
+			send(socket_fd, "PONG localhost", 4, 0);
 		}
-		while (1) {}
 	}
 	else {
 		std::cerr << "GUIDE: ./ircserv port password" << std::endl;
