@@ -6,11 +6,12 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/25 11:41:46 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/25 14:56:56 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
+
 #include <vector>
 #include <iterator>
 #include <sys/socket.h>
@@ -45,6 +46,7 @@ class Server : public AddressData
 	public:
 		Server();
 		Server(const Server& copy);
+		Server(std::string port, std::string pass);
 		Server &operator=(const Server& copy);
 		~Server();
 
@@ -58,6 +60,7 @@ class Server : public AddressData
 		std::vector<int>client_fds;
 		void		OnServerLoop();
 		void		CloseConnections();
+		void		DeleteClient(int client_fd);
 		void		OnServerFdQueue(void);
 		void		PreformServerCleanup();
 		void		ReadClientFd(int client_fd);

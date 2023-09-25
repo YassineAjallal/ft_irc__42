@@ -6,12 +6,16 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/25 12:45:13 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/25 15:43:33 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
+
+#ifndef POLLRDHUP
+#define POLLRDHUP 0x0011
+#endif 
 
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
@@ -21,6 +25,7 @@ Server::Server() : client_count(0)
 	this->socket_data_size = sizeof(this->client_sock_data);
 }
 
+
 Server::Server(const Server& copy)
 {
 	(void) copy;
@@ -29,6 +34,11 @@ Server::Server(const Server& copy)
 	this->c_fd_queue = copy.c_fd_queue;
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
+}
+
+Server::Server(std::string port, std::string pass) {
+	Server();
+	CreateServer(port, pass);
 }
 
 Server &Server::operator=(const Server& copy)
@@ -88,7 +98,7 @@ void	Server::InsertSocketFileDescriptorToPollQueue(const int connection_fd) {
 	struct pollfd tmp;
 
 	tmp.fd = connection_fd;
-	tmp.events = POLLIN;
+	tmp.events = POLLIN | POLLOUT;
 	this->c_fd_queue.push_back(tmp);
 }
 
@@ -104,9 +114,13 @@ void	 Server::CloseConnections(void) {
 }
 
 void	Server::PopOutClientFd(int client_fd) {
+	std::vector<struct pollfd>::iterator it = this->c_fd_queue.begin();
+
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].fd == client_fd) {
 			this->c_fd_queue[i].fd = -1;
+			std::advance(it, i);
+			this->c_fd_queue.erase(it);
 			return ;
 		}
 	}
@@ -114,6 +128,14 @@ void	Server::PopOutClientFd(int client_fd) {
 
 void	Server::PreformServerCleanup(void) {
 	freeaddrinfo(this->res);
+}
+
+void	Server::DeleteClient(int client_fd) {
+	close(client_fd);
+	PopOutClientFd(client_fd);
+	this->client_fds[client_count - 1] = -1;
+	this->client_fds.erase(std::find(client_fds.begin(), client_fds.end(), -1));
+	this->client_count--;
 }
 
 void	Server::ReadClientFd(int client_fd) {
@@ -134,9 +156,28 @@ void	Server::ReadClientFd(int client_fd) {
 }
 
 void	Server::OnServerFdQueue(void) {
-	
+	for (size_t i = 1; i < this->client_count + 1; i++) {
+		if (this->c_fd_queue[i].revents & POLLIN) {
+			ReadClientFd(this->c_fd_queue[i].fd);
+		
+		} else if (this->c_fd_queue[i].revents & POLLOUT) {
+			
+		} if (this->c_fd_queue[i].revents & (POLLIN | POLLHUP)) {
+			char	buf[1];
+			_bzero(buf, 1);
+			int rb = recv(c_fd_queue[i].fd, buf, 1, MSG_PEEK);
+			if (rb == 0) {
+				std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+				DeleteClient(c_fd_queue[i].fd);
+			}
+		}
+	}
+}
+
+void	Server::OnServerLoop(void) {
+	while (SRH) {
 	int 	new_client_fd = -1;
-	int 	poll_num = poll(&this->c_fd_queue[0], this->client_count + 1, 1024);
+	int 	poll_num = poll(&this->c_fd_queue[0], this->client_count + 1, 0);
 	
 	new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
 	if (new_client_fd > 0) {
@@ -147,18 +188,7 @@ void	Server::OnServerFdQueue(void) {
 		this->client_fds.push_back(new_client_fd);
 		this->client_count++;
 	}
-
-	if (poll_num) {
-		for (size_t i = 0; i < this->client_count + 1; i++) {
-			if (this->c_fd_queue[i].revents & POLLIN) {
-				ReadClientFd(this->c_fd_queue[i].fd);
-			}
-		}
-	}
-}
-
-void	Server::OnServerLoop(void) {
-	while (SRH) {
+	if (poll_num > 0)
 		OnServerFdQueue();
 	}
 }
