@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/24 17:47:41 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/25 10:10:55 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,9 @@
 	
 	- Make sure to check if the port
 	doesn't contain invalid characters.
+
+	- Make sure to initialize all variables
+	inside Server Class.
 */
 
 int main(int ac, char **av) {

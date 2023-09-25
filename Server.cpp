@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/24 21:04:44 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/25 12:45:13 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,9 @@ bool	Server::CreateServer(const std::string &port, const std::string &pass) {
 		return 1;
 	}
 	std::cout << "Server has been successfully created for port " + port << std::endl;
-	this->OnServerLoop();
+	fcntl(server_socket_fd, F_SETFL, O_NONBLOCK);
+	InsertSocketFileDescriptorToPollQueue(server_socket_fd);
+	OnServerLoop();
 	return 0;
 }
 
@@ -86,8 +88,7 @@ void	Server::InsertSocketFileDescriptorToPollQueue(const int connection_fd) {
 	struct pollfd tmp;
 
 	tmp.fd = connection_fd;
-	tmp.events = POLLIN | POLLOUT;
-	this->c_fd_queue.push_back(tmp);
+	tmp.events = POLLIN;
 	this->c_fd_queue.push_back(tmp);
 }
 
@@ -115,42 +116,49 @@ void	Server::PreformServerCleanup(void) {
 	freeaddrinfo(this->res);
 }
 
-std::string	Server::OnServerFdQueue(void) {
-	char buf[MAX_IRC_MSGLEN];
+void	Server::ReadClientFd(int client_fd) {
+	char	buf[MAX_IRC_MSGLEN];
 
-	_bzero(buf, sizeof(buf));
-	for (size_t i = 0; i < this->client_count; i++)
-		if (this->c_fd_queue[i].fd
-			&& (this->c_fd_queue[i].revents & POLLIN)) {
-			recv(c_fd_queue[i].fd, buf, MAX_IRC_MSGLEN, 0);
-			send(c_fd_queue[i].fd, INTRO, sizeof(INTRO) - 1, 0);
+	_bzero(buf, MAX_IRC_MSGLEN);
+	while (SRH)
+	{
+		int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
+		if (rb <= 0) {
+			break ;
+		} else {
+			buf[rb] = 0;
+			this->raw_data += buf;
+		}
 	}
-	std::cout << "[" << buf << "]" << std::endl;
-	return (buf);
+	std::cout << "[" << raw_data << "]" << std::endl;
+}
+
+void	Server::OnServerFdQueue(void) {
+	
+	int 	new_client_fd = -1;
+	int 	poll_num = poll(&this->c_fd_queue[0], this->client_count + 1, 1024);
+	
+	new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	if (new_client_fd > 0) {
+		fcntl(new_client_fd, F_SETFL, O_NONBLOCK);
+		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+		InsertSocketFileDescriptorToPollQueue(new_client_fd);
+		send(new_client_fd, INTRO, _strlen(INTRO), 0);
+		this->client_fds.push_back(new_client_fd);
+		this->client_count++;
+	}
+
+	if (poll_num) {
+		for (size_t i = 0; i < this->client_count + 1; i++) {
+			if (this->c_fd_queue[i].revents & POLLIN) {
+				ReadClientFd(this->c_fd_queue[i].fd);
+			}
+		}
+	}
 }
 
 void	Server::OnServerLoop(void) {
-	int new_client_fd = -1;
-	std::string holder;
-	
 	while (SRH) {
-		new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-		if (new_client_fd == -1)
-			std::cerr << "Connection has been aborted due to an error!" << std::endl;
-		else {
-			this->client_fds.push_back(new_client_fd);
-			this->client_count++;
-		}
-		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-		InsertSocketFileDescriptorToPollQueue(new_client_fd);
-	
-		int ret = poll(&this->c_fd_queue[0], client_count, 0);
-		if (ret < 0) {
-			std::cerr << "Unexpected Error in poll, closing connections..." << std::endl;
-			CloseConnections();
-			return ;
-		} else if (ret > 0) {
-			holder = OnServerFdQueue();
-		}
+		OnServerFdQueue();
 	}
 }
