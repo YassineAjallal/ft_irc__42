@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 19:04:11 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/24 19:42:03 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/26 15:57:37 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,16 +51,22 @@ const std::string Auth::getPass(const std::string &buf) {
 	return buf.substr(oldpos++, pos);
 }
 
+/*
+	- Authenticates the user, returns 1 if the client gave the wrong password
+*/
 bool Auth::Authenticate(const std::string& buffer, const std::string& original_pass) {
 	std::string name, pass;
 
-	name = getNick(buffer);
-	pass = getPass(buffer);
-
-	std::cout << "User [" + name + "] tried to authenticate using the following password: [" + pass + "]" << std::endl;
-
-	if (pass != original_pass) {
-		return 1;
+	std::cout << "Authenticating Client...\n";
+	if (!buffer.empty()) {
+		name = getNick(buffer);
+		pass = getPass(buffer);
+	
+		std::cout << "User [" + name + "] tried to authenticate using the following password: [" + pass + "]" << std::endl;
+	
+		if (pass != original_pass) {
+			return 1;
+		}
 	}
 	return 0;
 }

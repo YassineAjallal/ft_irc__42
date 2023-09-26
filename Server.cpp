@@ -6,16 +6,13 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/25 15:43:33 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/26 16:27:45 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
 
-#ifndef POLLRDHUP
-#define POLLRDHUP 0x0011
-#endif 
 
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
@@ -115,12 +112,21 @@ void	 Server::CloseConnections(void) {
 
 void	Server::PopOutClientFd(int client_fd) {
 	std::vector<struct pollfd>::iterator it = this->c_fd_queue.begin();
+	std::vector<Client>::iterator itx = this->clients.begin();
+
 
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].fd == client_fd) {
 			this->c_fd_queue[i].fd = -1;
 			std::advance(it, i);
 			this->c_fd_queue.erase(it);
+			break;
+		}
+	}
+	for (size_t i = 0; i < this->clients.size(); i++) {
+		if (this->clients[i].getSockID() == client_fd) {
+			std::advance(itx, i);
+			this->clients.erase(itx);
 			return ;
 		}
 	}
@@ -138,6 +144,17 @@ void	Server::DeleteClient(int client_fd) {
 	this->client_count--;
 }
 
+void	Server::InsertClient(int client_fd) {
+		Client User(client_fd, 1);
+
+		this->clients.push_back(User);
+		InsertSocketFileDescriptorToPollQueue(client_fd);
+		send(client_fd, INTRO, _strlen(INTRO), 0);
+		this->clients.push_back(User);
+		this->client_fds.push_back(client_fd);
+		this->client_count++;
+}
+
 void	Server::ReadClientFd(int client_fd) {
 	char	buf[MAX_IRC_MSGLEN];
 
@@ -152,24 +169,36 @@ void	Server::ReadClientFd(int client_fd) {
 			this->raw_data += buf;
 		}
 	}
-	std::cout << "[" << raw_data << "]" << std::endl;
+}
+
+bool	Server::JustConnected(int socketfd) {
+	size_t i = 0;
+
+	if (!this->clients.empty()) {
+		while (i < this->clients.size()) {
+			if (socketfd == clients[i].getSockID()) {
+				return clients[i].JustConnectedStatus();
+			}
+			i++;
+		}
+	}
+	return 0;
 }
 
 void	Server::OnServerFdQueue(void) {
 	for (size_t i = 1; i < this->client_count + 1; i++) {
 		if (this->c_fd_queue[i].revents & POLLIN) {
 			ReadClientFd(this->c_fd_queue[i].fd);
+			if (JustConnected(this->c_fd_queue[i].fd)) {
+				if (Auth::Authenticate(raw_data, password))
+					DeleteClient(this->c_fd_queue[i].fd);
+			}
 		
 		} else if (this->c_fd_queue[i].revents & POLLOUT) {
 			
-		} if (this->c_fd_queue[i].revents & (POLLIN | POLLHUP)) {
-			char	buf[1];
-			_bzero(buf, 1);
-			int rb = recv(c_fd_queue[i].fd, buf, 1, MSG_PEEK);
-			if (rb == 0) {
+		} if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 				std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-				DeleteClient(c_fd_queue[i].fd);
-			}
+				DeleteClient(c_fd_queue[i].fd);	
 		}
 	}
 }
@@ -183,10 +212,7 @@ void	Server::OnServerLoop(void) {
 	if (new_client_fd > 0) {
 		fcntl(new_client_fd, F_SETFL, O_NONBLOCK);
 		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-		InsertSocketFileDescriptorToPollQueue(new_client_fd);
-		send(new_client_fd, INTRO, _strlen(INTRO), 0);
-		this->client_fds.push_back(new_client_fd);
-		this->client_count++;
+		InsertClient(new_client_fd);
 	}
 	if (poll_num > 0)
 		OnServerFdQueue();
