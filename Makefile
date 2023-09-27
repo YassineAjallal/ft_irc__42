@@ -1,6 +1,6 @@
 NAME = ircserv
 CC = c++
-FLAGS = -Wall -Werror -Wextra -std=c++98 -fsanitize=address -g
+FLAGS = -Wall -Werror -Wextra -std=c++98 -fsanitize=address -g 
 SRC = $(addprefix ./, Auth.cpp Client.cpp main.cpp Server.cpp Toolkit.cpp )
 OBJ = $(SRC:.cpp=.o)
 

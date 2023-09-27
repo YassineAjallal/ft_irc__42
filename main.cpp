@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/25 10:10:55 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/27 11:01:35 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,8 @@
 
 	- Make sure to initialize all variables
 	inside Server Class.
+
+	- Make sure to check password for spaces
 */
 
 int main(int ac, char **av) {

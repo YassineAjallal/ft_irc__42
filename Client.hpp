@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/26 15:44:47 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/27 11:54:07 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ class Client
 		int	 			socket_id;
 		//int  channel_id;
 		bool 			just_connected;
+		bool			should_be_kicked;
 		//bool			IsOperator;
 		
 	public:
@@ -33,8 +34,9 @@ class Client
 		~Client();
 
 		int			getSockID() const;
+		bool		ShouldBeKicked() const;
+		void		SetKickStatus(bool status);
 		int			JustConnectedStatus() const;
 		void		SetName(const std::string& name);
 		void		SetJustConnectedStatus(bool status);
-
 };

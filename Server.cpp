@@ -6,12 +6,13 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/26 16:27:45 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/27 13:44:14 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
+#include "Auth.hpp"
 
 
 /* === Coplien's form ===*/
@@ -20,6 +21,7 @@ Server::Server() : client_count(0)
 	_bzero(&this->hints, sizeof(this->hints));
 	this->server_socket_fd = -1;
 	this->socket_data_size = sizeof(this->client_sock_data);
+	this->clients.clear();
 }
 
 
@@ -66,6 +68,7 @@ bool	Server::GenerateServerData(const std::string &port) {
 }
 
 bool	Server::CreateServer(const std::string &port, const std::string &pass) {
+	int optval = 1;
 	if (this->GenerateServerData(port))
 		return 1;
 	
@@ -75,6 +78,7 @@ bool	Server::CreateServer(const std::string &port, const std::string &pass) {
 		std::cerr << "Error: Socket creation has failed!" << std::endl;
 		return 1;
 	}
+	setsockopt(server_socket_fd, SOL_SOCKET, SO_REUSEADDR,  &optval, sizeof(optval));
 	if (bind(this->server_socket_fd, this->res->ai_addr, this->res->ai_addrlen) == -1) {
 		std::cerr << "Error: Couldn't bind the socket to host address!" << std::endl;
 		return 1;
@@ -114,21 +118,15 @@ void	Server::PopOutClientFd(int client_fd) {
 	std::vector<struct pollfd>::iterator it = this->c_fd_queue.begin();
 	std::vector<Client>::iterator itx = this->clients.begin();
 
+	c_fd_queue.erase(std::remove_if(c_fd_queue.begin(), c_fd_queue.end(), [client_fd](const struct pollfd& element) { return element.fd == client_fd; }), 
+    c_fd_queue.end());
 
-	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
-		if (this->c_fd_queue[i].fd == client_fd) {
-			this->c_fd_queue[i].fd = -1;
-			std::advance(it, i);
-			this->c_fd_queue.erase(it);
-			break;
+	while (itx != clients.end()) {
+		if (itx->getSockID() == client_fd) {
+			clients.erase(itx);
+			break ;
 		}
-	}
-	for (size_t i = 0; i < this->clients.size(); i++) {
-		if (this->clients[i].getSockID() == client_fd) {
-			std::advance(itx, i);
-			this->clients.erase(itx);
-			return ;
-		}
+		itx++;
 	}
 }
 
@@ -137,10 +135,13 @@ void	Server::PreformServerCleanup(void) {
 }
 
 void	Server::DeleteClient(int client_fd) {
+	std::vector<int>::iterator it = client_fds.begin();
+
+	it = std::find(it, client_fds.end(), client_fd);
 	close(client_fd);
 	PopOutClientFd(client_fd);
-	this->client_fds[client_count - 1] = -1;
-	this->client_fds.erase(std::find(client_fds.begin(), client_fds.end(), -1));
+	if (it != client_fds.end())
+		this->client_fds.erase(it);
 	this->client_count--;
 }
 
@@ -150,24 +151,35 @@ void	Server::InsertClient(int client_fd) {
 		this->clients.push_back(User);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
 		send(client_fd, INTRO, _strlen(INTRO), 0);
-		this->clients.push_back(User);
 		this->client_fds.push_back(client_fd);
 		this->client_count++;
+}
+
+int	Server::FindClient(int client_fd) {
+	for (size_t i = 0; i < clients.size(); i++) {
+		if (client_fd == clients[i].getSockID())
+			return ((int)i);
+	}
+	return -1;
 }
 
 void	Server::ReadClientFd(int client_fd) {
 	char	buf[MAX_IRC_MSGLEN];
 
 	_bzero(buf, MAX_IRC_MSGLEN);
-	while (SRH)
-	{
-		int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
-		if (rb <= 0) {
-			break ;
-		} else {
-			buf[rb] = 0;
-			this->raw_data += buf;
+	int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, MSG_PEEK);
+	if (rb > 0) {
+		while (SRH)
+		{
+			rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
+			if (rb <= 0) {
+				break ;
+			} else {
+				buf[rb] = 0;
+				this->raw_data += buf;
+			}
 		}
+		std::cout << buf << std::endl;
 	}
 }
 
@@ -186,19 +198,24 @@ bool	Server::JustConnected(int socketfd) {
 }
 
 void	Server::OnServerFdQueue(void) {
-	for (size_t i = 1; i < this->client_count + 1; i++) {
+	for (size_t i = 1, found = 0; i < this->client_count + 1; i++) {
 		if (this->c_fd_queue[i].revents & POLLIN) {
 			ReadClientFd(this->c_fd_queue[i].fd);
-			if (JustConnected(this->c_fd_queue[i].fd)) {
-				if (Auth::Authenticate(raw_data, password))
-					DeleteClient(this->c_fd_queue[i].fd);
+			if (JustConnected(c_fd_queue[i].fd)) {
+				if (Auth::Authenticate(raw_data, password)) {
+					found = FindClient(this->c_fd_queue[i].fd);
+				}
 			}
 		
-		} else if (this->c_fd_queue[i].revents & POLLOUT) {
-			
-		} if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
-				std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-				DeleteClient(c_fd_queue[i].fd);	
+		}
+		else if (this->c_fd_queue[i].revents & POLLOUT) {
+			if (found >= 0 && clients[found].getSockID() == c_fd_queue[i].fd)
+				send(c_fd_queue[i].fd, DIE, sizeof(DIE) - 1, 0);
+				DeleteClient(c_fd_queue[i].fd);
+		}
+		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
+			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+			DeleteClient(c_fd_queue[i].fd);	
 		}
 	}
 }
@@ -213,8 +230,9 @@ void	Server::OnServerLoop(void) {
 		fcntl(new_client_fd, F_SETFL, O_NONBLOCK);
 		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 		InsertClient(new_client_fd);
+		std::cout << "Total Clients: " << clients.size() << std::endl;
 	}
 	if (poll_num > 0)
 		OnServerFdQueue();
 	}
-}
+}	
