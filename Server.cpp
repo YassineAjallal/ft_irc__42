@@ -6,15 +6,13 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/27 13:44:14 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/30 12:02:08 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
-#include "Auth.hpp"
-
-
+ 
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
 {
@@ -115,18 +113,30 @@ void	 Server::CloseConnections(void) {
 }
 
 void	Server::PopOutClientFd(int client_fd) {
-	std::vector<struct pollfd>::iterator it = this->c_fd_queue.begin();
-	std::vector<Client>::iterator itx = this->clients.begin();
-
-	c_fd_queue.erase(std::remove_if(c_fd_queue.begin(), c_fd_queue.end(), [client_fd](const struct pollfd& element) { return element.fd == client_fd; }), 
-    c_fd_queue.end());
-
-	while (itx != clients.end()) {
-		if (itx->getSockID() == client_fd) {
-			clients.erase(itx);
+	std::vector<int>::iterator it = client_fds.begin();
+	std::vector<Client>::iterator itc = clients.begin();
+	std::vector<struct pollfd>::iterator itp = c_fd_queue.begin();
+	
+	while (it != client_fds.end()) {
+		if (*it == client_fd) {
+			client_fds.erase(it);
 			break ;
 		}
-		itx++;
+		it++;
+	}
+	while (itc != clients.end()) {
+		if (itc->getSockID() == client_fd) {
+			clients.erase(itc);
+			break ;
+		}
+		itc++;
+	}
+	while (itp != c_fd_queue.end()) {
+		if (itp->fd == client_fd) {
+			c_fd_queue.erase(itp);
+			break ;
+		}
+		itp++;
 	}
 }
 
@@ -135,13 +145,9 @@ void	Server::PreformServerCleanup(void) {
 }
 
 void	Server::DeleteClient(int client_fd) {
-	std::vector<int>::iterator it = client_fds.begin();
 
-	it = std::find(it, client_fds.end(), client_fd);
 	close(client_fd);
 	PopOutClientFd(client_fd);
-	if (it != client_fds.end())
-		this->client_fds.erase(it);
 	this->client_count--;
 }
 
@@ -156,9 +162,11 @@ void	Server::InsertClient(int client_fd) {
 }
 
 int	Server::FindClient(int client_fd) {
-	for (size_t i = 0; i < clients.size(); i++) {
-		if (client_fd == clients[i].getSockID())
-			return ((int)i);
+	size_t i = 0;
+	while (i < clients.size()) {
+		if (clients.at(i).getSockID() == client_fd)
+			return i;
+		i++;
 	}
 	return -1;
 }
@@ -176,10 +184,10 @@ void	Server::ReadClientFd(int client_fd) {
 				break ;
 			} else {
 				buf[rb] = 0;
-				this->raw_data += buf;
+				raw_data += buf;
 			}
 		}
-		std::cout << buf << std::endl;
+		clients.at(FindClient(client_fd)).SetBuffer(raw_data);
 	}
 }
 
@@ -197,26 +205,57 @@ bool	Server::JustConnected(int socketfd) {
 	return 0;
 }
 
-void	Server::OnServerFdQueue(void) {
-	for (size_t i = 1, found = 0; i < this->client_count + 1; i++) {
-		if (this->c_fd_queue[i].revents & POLLIN) {
-			ReadClientFd(this->c_fd_queue[i].fd);
-			if (JustConnected(c_fd_queue[i].fd)) {
-				if (Auth::Authenticate(raw_data, password)) {
-					found = FindClient(this->c_fd_queue[i].fd);
-				}
+void	Server::KickClients(void) {
+	std::vector<Client>::iterator it = clients.begin();
+
+	while (it != clients.end()) {
+		if (it->ShouldBeKicked() == true) {
+			DeleteClient(it->getSockID());
+		}
+		it++;
+	}
+}
+
+void	Server::Authenticate(int client_fd) {
+	char	*pass;
+	std::string hold_pass;
+	size_t pos;
+	size_t index;
+
+	index = FindClient(client_fd);
+	if (index >= 0) {
+		pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
+		while (pass != NULL) {
+			hold_pass = pass;
+			if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
+				hold_pass = hold_pass.substr(pos + 5, hold_pass.length());
+				break ;
 			}
-		
+			pass = std::strtok(NULL, "\r\n");
 		}
-		else if (this->c_fd_queue[i].revents & POLLOUT) {
-			if (found >= 0 && clients[found].getSockID() == c_fd_queue[i].fd)
-				send(c_fd_queue[i].fd, DIE, sizeof(DIE) - 1, 0);
-				DeleteClient(c_fd_queue[i].fd);
-		}
+		if (hold_pass != password) {
+			DeleteClient(client_fd);
+			return ;
+		}	
+		clients.at(index).SetJustConnectedStatus(false);
+	}
+}
+
+void	Server::OnServerFdQueue(void) {
+	for (size_t i = 1; i < this->client_count + 1; i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-			DeleteClient(c_fd_queue[i].fd);	
+			DeleteClient(c_fd_queue[i].fd);
 		}
+		else if (this->c_fd_queue[i].revents & POLLIN) {
+			ReadClientFd(this->c_fd_queue[i].fd);
+			if (JustConnected(c_fd_queue[i].fd)) {
+				Authenticate(c_fd_queue[i].fd);
+			}
+		}
+		else if (this->c_fd_queue[i].revents & POLLOUT) {
+		}
+		raw_data.clear();
 	}
 }
 
@@ -235,4 +274,4 @@ void	Server::OnServerLoop(void) {
 	if (poll_num > 0)
 		OnServerFdQueue();
 	}
-}	
+}

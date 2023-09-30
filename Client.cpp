@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/27 12:21:41 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/29 17:17:16 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,4 +59,13 @@ bool	Client::ShouldBeKicked(void) const {
 
 void	Client::SetKickStatus(bool status) {
 	this->should_be_kicked = status;
+}
+
+void	Client::SetBuffer(const std::string& buffer) {
+	this->raw_data.clear();
+	this->raw_data = buffer;
+}
+
+const std::string&	Client::GetBuffer(void) const {
+	return (this->raw_data);
 }

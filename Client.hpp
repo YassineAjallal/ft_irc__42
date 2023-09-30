@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/27 11:54:07 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/29 17:17:15 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+#include <string>
 
 class Client
 {
@@ -24,6 +25,7 @@ class Client
 		//int  channel_id;
 		bool 			just_connected;
 		bool			should_be_kicked;
+		std::string		raw_data;
 		//bool			IsOperator;
 		
 	public:
@@ -37,6 +39,8 @@ class Client
 		bool		ShouldBeKicked() const;
 		void		SetKickStatus(bool status);
 		int			JustConnectedStatus() const;
+		const std::string&	GetBuffer(void) const;
 		void		SetName(const std::string& name);
 		void		SetJustConnectedStatus(bool status);
+		void		SetBuffer(const std::string& buffer);
 };
