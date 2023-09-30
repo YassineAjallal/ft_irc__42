@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 11:47:05 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/30 19:05:52 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,8 +29,8 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
+#include <sstream>
 #include "Toolkit.hpp"
-#include "Client.hpp"
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
@@ -55,6 +55,8 @@
 "█  █  ▐█ █▄   ▄▀ \n" \
 "███▀   ▐ ▀███▀   \n" \
 "                \r\n"
+
+class Client;
 
 struct AddressData {
 	protected:
@@ -82,18 +84,30 @@ class Server : public AddressData
 		std::vector<struct pollfd> c_fd_queue;
 		std::vector<int> client_fds;
 		std::string raw_data;
-		void		OnServerLoop();
+		std::string send_buffer;
+		std::map<std::string, std::vector<std::string> > command;
+
+		/* =============Server Functions============ */
 		void		KickClients(void);
-		void		CloseConnections();
+		void		OnServerLoop(void);
 		void		OnServerFdQueue(void);
-		void		PreformServerCleanup();
+		void		CloseConnections(void);
 		int			FindClient(int client_fd);
+		void		PreformServerCleanup(void);
+		void		CopySockData(int client_fd);
 		void		Authenticate(int client_fd);
 		void		InsertClient(int client_fd);
 		void		DeleteClient(int client_fd);
 		void		ReadClientFd(int client_fd);
 		bool		JustConnected(int socketfd);
 		void		PopOutClientFd(int client_fd);
+		void		SendClientMessage(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
+
+		/* ===============Interpreter================ */
+		// void		PONG(int client_fd);
+		void		Interpreter(int client_fd);
+		// void		FindCommand(int client_fd);
+		
 };

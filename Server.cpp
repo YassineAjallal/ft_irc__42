@@ -6,12 +6,13 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 12:02:08 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/30 19:11:24 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
+#include "Client.hpp"
  
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
@@ -151,10 +152,16 @@ void	Server::DeleteClient(int client_fd) {
 	this->client_count--;
 }
 
+void		Server::CopySockData(int client_fd) {
+	this->clients.at(FindClient(client_fd)).client_sock_data = this->client_sock_data;
+	this->clients.at(FindClient(client_fd)).socket_data_size = this->socket_data_size;
+}
+
 void	Server::InsertClient(int client_fd) {
 		Client User(client_fd, 1);
 
 		this->clients.push_back(User);
+		CopySockData(client_fd);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
 		send(client_fd, INTRO, _strlen(INTRO), 0);
 		this->client_fds.push_back(client_fd);
@@ -189,6 +196,13 @@ void	Server::ReadClientFd(int client_fd) {
 		}
 		clients.at(FindClient(client_fd)).SetBuffer(raw_data);
 	}
+}
+
+void	Server::SendClientMessage(int client_fd) {
+	if (!clients.at(FindClient(client_fd)).GetMessageBuffer().empty()) {
+		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length() - 1, 0);
+	}
+	send_buffer.clear();
 }
 
 bool	Server::JustConnected(int socketfd) {
@@ -236,7 +250,7 @@ void	Server::Authenticate(int client_fd) {
 		if (hold_pass != password) {
 			DeleteClient(client_fd);
 			return ;
-		}	
+		}
 		clients.at(index).SetJustConnectedStatus(false);
 	}
 }
@@ -251,9 +265,12 @@ void	Server::OnServerFdQueue(void) {
 			ReadClientFd(this->c_fd_queue[i].fd);
 			if (JustConnected(c_fd_queue[i].fd)) {
 				Authenticate(c_fd_queue[i].fd);
+				continue ;
 			}
+			Interpreter(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
+			SendClientMessage(c_fd_queue[i].fd);
 		}
 		raw_data.clear();
 	}
@@ -274,4 +291,54 @@ void	Server::OnServerLoop(void) {
 	if (poll_num > 0)
 		OnServerFdQueue();
 	}
+}
+
+
+/* ========== INTERPRETER SECTION =========== */
+
+// void	Server::PONG(int client_fd) {
+// 	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
+// 	send_buffer += "PONG " + client_ip + " " + command.begin()->second + "\r\n";
+// 	clients.at(client_fd).SetMessage(send_buffer);
+// }
+
+// void	Server::FindCommand(int client_fd) {
+// 	int	command_choice = 0;
+// 	std::string Commands[1] = { "PING" };
+// 	void (Server::*Command[1])(int) = { &Server::PONG };
+
+// 	std::map<std::string, std::string>::iterator it = this->command.begin();
+// 	while (it != this->command.end()) {
+// 		std::cout << it->first << std::endl;
+// 		if (it->first == Commands[command_choice]) {
+// 			(this->*Command[command_choice])(client_fd);
+// 			return ;
+// 		}
+// 		command_choice++;
+// 	}
+// }
+
+/*
+	- Note to self: Tokenizer seems somewhat done. All i need to do now is
+	to parse more 
+
+*/
+void	Server::Interpreter(int __unused client_fd) {
+	char *token = std::strtok(const_cast<char *>(raw_data.c_str()), "\r\n");
+	while (token) {
+		std::string command_temp;
+		std::string tmp;
+		std::vector<std::string> args;
+		std::stringstream holder(token);
+	
+		std::cout << raw_data << std::endl;
+		std::getline(holder, command_temp, ' ');
+		while (getline(holder, tmp, ' '))
+			args.push_back(tmp);
+		command.insert(std::pair<std::string, std::vector<std::string> >(command_temp, args));
+		std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
+		//FindCommand(client_fd);
+		token = std::strtok(NULL, "\r\n");
+	}
+	command.clear();
 }
