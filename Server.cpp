@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/02 14:15:59 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/03 14:44:02 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -417,6 +417,24 @@ void	Server::Interpreter(int __unused client_fd) {
 		// std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
 		//FindCommand(client_fd);
 		token = std::strtok(NULL, "\r\n");
+		std::cout << command.begin()->first << std::endl;
+		for (size_t i = 0; i < command.begin()->second.size(); i++)
+			std::cout << command.begin()->second[i] << std::endl;	
 		command.clear();
+	}
+}
+
+void Server::JOIN(int client_fd)
+{
+	int client_id =  FindClient(client_fd);
+	std::map< std::string, std::vector<int> >::iterator channel_found = this->channels.find(this->command.begin()->second[0]);
+	if (channel_found == this->channels.end())
+		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " " + this->command.begin()->first + " : No such channel\r\n");
+	else if (std::find(channel_found->second.begin(), channel_found->second.end(), client_fd) != channel_found->second.end())
+		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " :You are already in this channel\r\n");
+	else
+	{
+		channel_found->second.push_back(client_fd);
+		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " :is joining the channel\r\n");
 	}
 }

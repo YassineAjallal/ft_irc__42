@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 13:52:29 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/03 12:39:55 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,10 @@ Client::Client(int socket_id, bool just_connected) {
 
 int Client::getSockID() const {
 	return (this->socket_id);
+}
+
+std::string Client::getName() const {
+	return (this->name);
 }
 
 int Client::JustConnectedStatus() const {

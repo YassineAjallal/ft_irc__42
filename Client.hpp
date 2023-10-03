@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/02 14:01:51 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/03 12:40:05 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,7 @@ class Client : public AddressDataClient
 		~Client();
 
 		int			getSockID() const;
+		std::string	getName() const;
 		bool		ShouldBeKicked() const;
 		void		SetKickStatus(bool status);
 		int			JustConnectedStatus() const;
