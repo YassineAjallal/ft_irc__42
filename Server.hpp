@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 19:05:52 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/02 14:21:58 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,7 @@ struct AddressData {
 
 class Server : public AddressData
 {
+	typedef void (Server::*function_to_command)(int);
 	public:
 		Server();
 		Server(const Server& copy);
@@ -80,7 +81,9 @@ class Server : public AddressData
 	private:
 		size_t		client_count;
 		std::string password;
-		std::vector<Client> clients;
+		std::vector<Client> clients; // all clients connected
+		// std::string commands[1]; // array of commands
+		std::vector< function_to_command > functions_to_commands; // pointers to commands functios
 		std::vector<struct pollfd> c_fd_queue;
 		std::vector<int> client_fds;
 		std::string raw_data;
@@ -90,7 +93,7 @@ class Server : public AddressData
 		/* =============Server Functions============ */
 		void		KickClients(void);
 		void		OnServerLoop(void);
-		void		OnServerFdQueue(void);
+		void		OnServerFdQueue(void); // recieve command
 		void		CloseConnections(void);
 		int			FindClient(int client_fd);
 		void		PreformServerCleanup(void);
@@ -107,7 +110,7 @@ class Server : public AddressData
 
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);
-		void		Interpreter(int client_fd);
+		void		Interpreter(int client_fd); // parse command
 		// void		FindCommand(int client_fd);
 		
 };

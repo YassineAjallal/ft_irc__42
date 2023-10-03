@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 20:06:40 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/02 14:15:59 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -414,9 +414,9 @@ void	Server::Interpreter(int __unused client_fd) {
 		while (getline(holder, tmp, ' '))
 			args.push_back(tmp);
 		command.insert(std::pair<std::string, std::vector<std::string> >(command_temp, args));
-		std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
+		// std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
 		//FindCommand(client_fd);
 		token = std::strtok(NULL, "\r\n");
+		command.clear();
 	}
-	command.clear();
 }

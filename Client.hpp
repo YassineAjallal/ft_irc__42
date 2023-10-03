@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 13:55:12 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/02 14:01:51 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ class Client : public AddressDataClient
 		bool 			just_connected;
 		bool			should_be_kicked;
 		std::string		raw_data;
-		std::string		send_buffer;
+		std::string		send_buffer; // the message from server
 		
 		//bool			IsOperator;
 		
