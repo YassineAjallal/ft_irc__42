@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/04 15:49:02 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/04 20:15:57 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,14 +28,14 @@
 #define ERR_INVITEONLYCHAN(client, channel) ("473 " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 #define ERR_BADCHANMASK(channel) ("476 " + channel + " :Bad Channel Mask\r\n")
 #define ERR_NOTONCHANNEL(client, channel) ("442 " + client + " " + channel + " :You're not on that channel\r\n")
-
+#define ERR_CHANOPRIVSNEEDED(client, channel) ("482" + client + " " + channel + " :You're not channel operator\r\n")
+#define ERR_USERNOTINCHANNEL(client, nick, channel) ("441" + client + " " + nick + " " + channel +  " :They aren't on that channel\r\n")
 
 
 #define RPL_TOPIC(client, channel, topic) ("332 " + client + " " + channel + ": " + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) ("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) (prefix + nick + " ")
 #define RPL_ENDOFNAMES(client, channel) ("366 " + client + " " + channel + " :End of /NAMES list\r\n")
-
 
 
 
@@ -46,6 +46,7 @@ class Channel {
 		~Channel();
 		void 			join(Client &client);
 		void 			part(Client &client, std::string reason, std::vector<Client>& clients);
+		void			kick(Client &client, Client &kicked, std::string reason, std::vector<Client>& clients);
 		std::string 	getName() const;
 		std::string 	getPassword() const;
 		std::string		show_users(Client client) const;
