@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/03 12:39:55 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/04 11:57:02 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,4 +81,34 @@ const std::string&	Client::GetMessageBuffer(void) const {
 
 void	Client::SetMessage(const std::string& buffer) {
 	send_buffer = buffer;
+}
+
+bool		Client::operator<(const Client& c)
+{
+	return (this->socket_id < c.getSockID());
+}
+
+bool		Client::operator>(const Client& c)
+{
+	return (this->socket_id > c.getSockID());
+}
+
+bool		Client::operator<=(const Client& c)
+{
+	return (this->socket_id <= c.getSockID());
+}
+
+bool		Client::operator>=(const Client& c)
+{
+	return (this->socket_id >= c.getSockID());
+}
+
+bool		Client::operator==(const Client& c)
+{
+	return (this->socket_id == c.getSockID());
+}
+
+bool		Client::operator!=(const Client& c)
+{
+	return (this->socket_id != c.getSockID());
 }

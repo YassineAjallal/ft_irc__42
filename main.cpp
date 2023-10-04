@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/03 19:32:11 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/04 16:08:29 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,11 +43,27 @@ int main(int __unused ac, char __unused **av) {
 	// 	std::cerr << "GUIDE: ./ircserv port password" << std::endl;
 	// 	return 2;
 	// }
-	Channel chan("youtube", 0, "", "programming", 122);
-	Client client(10, 0);
-	// std::cout << chan->getName() << std::endl;
-	client.SetName("yassine");
-	chan.join(client);
-	std::cout << client.GetMessageBuffer();
+	Channel chan("youtube", false, "", "prog", 5);
+	std::vector<Client> clients;
+	for (int i = 0; i < 5; i++)
+	{
+		clients.push_back(Client(i * 10, 1));
+		clients[i].SetName(std::to_string(i * 10) + "\'client");
+	}
+	for (int i = 0; i < 5; i++)
+	{
+		chan.join(clients[i]);
+		std::cout << clients[i].GetMessageBuffer();
+		std::cout << "------------------------------------------" << std::endl;
+	}
+	std::cout << "\n\n\n" << std::endl;
+	chan.part(clients[0], "anti pointers", clients);
+	for (int i = 0; i < 5; i++)
+	{
+		std::cout << clients[i].GetMessageBuffer();
+		std::cout << "------------------------------------------" << std::endl;
+	}
+	
+	
 	return 0;
 }

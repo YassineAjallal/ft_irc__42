@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/03 14:44:02 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/04 14:52:29 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,9 @@
 #include "Toolkit.hpp"
 #include "Client.hpp"
  
+
 /* === Coplien's form ===*/
-Server::Server() : client_count(0)
+Server::Server()
 {
 	_bzero(&this->hints, sizeof(this->hints));
 	this->server_socket_fd = -1;
