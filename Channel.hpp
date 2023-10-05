@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/05 19:02:42 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/05 20:30:14 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,13 +33,15 @@
 #define ERR_NOTONCHANNEL(client, channel) ("(442) " + client + " " + channel + " :You're not on that channel\r\n")
 #define ERR_CHANOPRIVSNEEDED(client, channel) ("(482) " + client + " " + channel + " :You're not channel operator\r\n")
 #define ERR_USERNOTINCHANNEL(client, nick, channel) ("(441)" + client + " " + nick + " " + channel +  " :They aren't on that channel\r\n")
-
+#define ERR_USERONCHANNEL(client, nick, channel) ("(443) " + client + " " + nick + " " + channel + ":is already on channel\r\n")
+#define ERR_INVITEONLYCHAN(client, channel) ("(473) " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 
 #define RPL_TOPIC(client, channel, topic) ("(332) " + client + " " + channel + ": " + topic + "\r\n")
 #define RPL_NOTOPIC(client, channel) ("(331) " + client + " " + channel + " :No topic is set\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) ("(333) " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) (prefix + nick + " ")
 #define RPL_ENDOFNAMES(client, channel) ("(366) " + client + " " + channel + " :End of /NAMES list\r\n")
+#define RPL_INVITING(client, nick, channel) ("(341) " + client + " " + nick + " " + channel + "\r\n")
 
 
 
@@ -72,7 +74,7 @@ class Channel {
 		void			topic(Client &client, bool topic_exist, std::string topic);
 		void			name();
 		void			list();
-		void			invite();
+		void			invite(Client& client, Client &invited);
 		void			sendToAll(Client &client, std::string msg);
 		std::string		show_users(Client client) const;
 
@@ -89,7 +91,7 @@ class Channel {
 		std::string 		_topic;
 		std::string 		_topic_setter;
 		std::string 		_time_topic_is_set;
-		std::vector<Member>	_operators;
+		std::vector<Client>	_invited;
 		std::vector<Member>	_members;
 		void				setTopic(const std::string& t, std::string setterName);
 		bool				_on_channel(Client &client);
@@ -99,3 +101,7 @@ class Channel {
 };
 
 #endif // Channel_HPP
+
+
+// print previliges in show_users function
+// test the join function

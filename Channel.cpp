@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/05 18:55:47 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/05 20:28:57 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,6 @@ _has_password(true),
 _password(password)
 {}
 
-// Destructor
 Channel::~Channel()
 {
     
@@ -131,10 +130,14 @@ void			Channel::_remove_member(Client &client)
 		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
 }
 
+// don't forget to test this function
 void 			Channel::join(Client &client)
 {
 	if (this->_on_channel(client))
 		client.SetMessage(client.getName() + " " + this->_name + " :You are already in this channel\r\n");
+	else if (this->_invite_only && 
+				(std::find(this->_invited.begin(), this->_invited.end(), client) == this->_invited.end()))
+		client.SetMessage(ERR_INVITEONLYCHAN(client.getName(), this->_name));
 	else
 	{
 		if (this->_members.size() >= this->_size)
@@ -204,6 +207,26 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 // {
 	
 // }
+void			Channel::invite(Client& client, Client &invited)
+{
+	std::vector<Member>::iterator client_it;
+	std::vector<Member>::iterator invited_it;
+
+	client_it = std::find(this->_members.begin(), this->_members.end(), client)
+	invited_it = std::find(this->_members.begin(), this->_members.end(), invited);
+	if (!this->_on_channel(client))
+		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name()));
+	else if (this->_invite_only && !client_it->_operator_prev)
+		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
+	else if (invited_it != this->_members.end())
+		client.SetMessage(ERR_USERONCHANNEL(client.getName(), invited.getName(), this->_name));
+	else
+	{
+		this->_invited.push_back(invited);
+		client.SetMessage(RPL_INVITING(client.getName(), invited.getName(), this->_name));
+		invited.SetMessage("INVITE " + client.getName() + "\r\n");
+	}
+}
 
 void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 {
