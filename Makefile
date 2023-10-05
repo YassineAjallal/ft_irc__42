@@ -1,7 +1,7 @@
 NAME = ircserv
 CC = c++
 FLAGS = -Wall -Werror -Wextra -std=c++98 -fsanitize=address
-SRC = $(addprefix ./, Client.cpp main.cpp Server.cpp Toolkit.cpp Channel.cpp  )
+SRC = $(addprefix ./, Client.cpp main.cpp Server.cpp Toolkit.cpp Channel.cpp Member.cpp  )
 OBJ = $(SRC:.cpp=.o)
 
 .PHONY: all clean fclean re

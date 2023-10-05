@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/04 14:52:36 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/05 12:46:49 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <list> 
 #include <algorithm>
 #include <ctime>
 #include <netinet/in.h>
@@ -57,6 +58,7 @@
 "                \r\n"
 
 class Client;
+class Channel;
 
 struct AddressData {
 	protected:
@@ -79,16 +81,16 @@ class Server : public AddressData
 		bool	CreateServer(const std::string &port, const std::string &pass);
 
 	private:
-		size_t		client_count;
-		std::string password;
-		std::vector<Client> clients; // all clients connected
+		size_t								client_count;
+		std::string 						password;
+		std::vector<Client> 				clients; // all clients connected
 		// std::string commands[1]; // array of commands
-		std::vector< function_to_command > functions_to_commands; // pointers to commands functios
-		std::map< std::string , std::vector<int> > channels;
-		std::vector<struct pollfd> c_fd_queue;
-		std::vector<int> client_fds;
-		std::string raw_data;
-		std::string send_buffer;
+		std::vector< function_to_command >	functions_to_commands; // pointers to commands functios
+		std::list<Channel> 					channels;
+		std::vector<struct pollfd> 			c_fd_queue;
+		std::vector<int> 					client_fds;
+		std::string							raw_data;
+		std::string 						send_buffer;
 		std::map<std::string, std::vector<std::string> > command;
 
 		/* =============Server Functions============ */
@@ -108,9 +110,11 @@ class Server : public AddressData
 		void		SendClientMessage(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
+		bool		isChannelExist(Channel chan);
 
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);
+		public:
 		void		JOIN(int client_fd);
 		void		Interpreter(int client_fd); // parse command
 		// void		FindCommand(int client_fd);

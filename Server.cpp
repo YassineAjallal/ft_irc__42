@@ -6,13 +6,14 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/04 14:52:29 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/05 17:16:24 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
 #include "Client.hpp"
+#include "Channel.hpp"
  
 
 /* === Coplien's form ===*/
@@ -425,17 +426,24 @@ void	Server::Interpreter(int __unused client_fd) {
 	}
 }
 
-void Server::JOIN(int client_fd)
+bool		Server::isChannelExist(Channel chan)
 {
-	int client_id =  FindClient(client_fd);
-	std::map< std::string, std::vector<int> >::iterator channel_found = this->channels.find(this->command.begin()->second[0]);
-	if (channel_found == this->channels.end())
-		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " " + this->command.begin()->first + " : No such channel\r\n");
-	else if (std::find(channel_found->second.begin(), channel_found->second.end(), client_fd) != channel_found->second.end())
-		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " :You are already in this channel\r\n");
-	else
-	{
-		channel_found->second.push_back(client_fd);
-		this->clients.at(client_id).SetMessage(this->clients.at(client_id).getName() + " :is joining the channel\r\n");
-	}
+	return (chan.getName() == this->command.begin()->second[0]);
 }
+
+// void Server::JOIN(int client_fd)
+// {
+// 	int client_id =  this->FindClient(client_fd);
+// 	if (this->command.begin()->second.size() < 1)
+// 		this->clients[client_id].SetMessage(ERR_NEEDMOREPARAMS(this->clients[client_id].getName(), "JOIN"));
+// 	else
+// 	{
+// 		// Channel	toFind("name");
+// 		Client*	client = &this->clients[client_idx];
+// 		if (std::find(this->channels.begin(), this->channels.end(), Channel(this->command.begin()->second[0])))
+// 			std::cout << "here\n" << std::endl;
+// 			//
+// 		// if (std::find_if(this->channels.begin(), this->channels.end(), isChannelExist))
+// 		// 	std::cout << "here\n" << std::endl;
+// 	}
+// }
