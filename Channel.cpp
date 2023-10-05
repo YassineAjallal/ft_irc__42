@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/05 18:02:07 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/05 18:55:47 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ void			Channel::setTopic(const std::string& t, std::string setterName)
 {
 	this->setTopicSetter(setterName);
 	this->setTopicTime(this->_get_time());
+	this->_has_topic = true;
 	this->_topic = t;
 }
 
@@ -206,16 +207,28 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 
 void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 {
+	std::vector<Member>::iterator client_it;
+	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->name));
+		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name));
+	else if (!topic_exist)
+			client.SetMessage(this->_has_topic 
+								? RPL_TOPIC(client.getName(), this->_name, this->_topic) +
+									RPL_TOPICWHOTIME(client.getName(), this->_name, this->_topic_setter, this->_time_topic_is_set)
+								: RPL_NOTOPIC(client.getName(), this->_name)
+							);
 	else
 	{
-		if (!topic_exist)
-			client.SetMessage(this->_has_topic 
-								? RPL_TOPIC(client.getName(), this->_name, this->_topic)
-								: RPL
-							)
+		if (!client_it->getTopicPrev())
+			client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
+		else
+		{
+			this->setTopic(topic, client.getName());
+			client.SetMessage("TOPIC " + this->_topic + "\r\n");
+			this->sendToAll(client, "TOPIC " + this->_topic + "\r\n");
+		}
 	}
+	
 }
 
 std::string		Channel::show_users(Client client) const
