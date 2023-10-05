@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 20:06:40 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/01 13:42:53 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -374,27 +374,38 @@ void	Server::OnServerLoop(void) {
 
 /* ========== INTERPRETER SECTION =========== */
 
-// void	Server::PONG(int client_fd) {
-// 	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
-// 	send_buffer += "PONG " + client_ip + " " + command.begin()->second + "\r\n";
-// 	clients.at(client_fd).SetMessage(send_buffer);
-// }
+void	Server::PONG(int client_fd) {
+	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
+	send_buffer += "PONG " + client_ip + " ";
+	
+	for (size_t i = 0; i < command.begin()->second.size(); i++)
+		send_buffer += command.begin()->second.at(i);
+	
+	clients.at(client_fd).SetMessage(send_buffer);
+}
 
-// void	Server::FindCommand(int client_fd) {
-// 	int	command_choice = 0;
-// 	std::string Commands[1] = { "PING" };
-// 	void (Server::*Command[1])(int) = { &Server::PONG };
+void	Server::FindCommand(int client_fd) {
+	size_t	command_choice = 0;
+	std::string Commands[1] = { "PING" };
+	void (Server::*Command[1])(int) = { &Server::PONG };
 
-// 	std::map<std::string, std::string>::iterator it = this->command.begin();
-// 	while (it != this->command.end()) {
-// 		std::cout << it->first << std::endl;
-// 		if (it->first == Commands[command_choice]) {
-// 			(this->*Command[command_choice])(client_fd);
-// 			return ;
-// 		}
-// 		command_choice++;
-// 	}
-// }
+	std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
+	while (it != this->command.end()) {
+		command_choice = 0;
+		std::cout << "Command: " + it->first + " Args:";
+		while (command_choice < Commands->size()) {
+			for (size_t i = 0; i < it->second.size(); i++)
+				std::cout << "[" + it->second.at(i) + "]" << "Size: " << it->second.size() << "Iter: " << i << std::endl;
+				 /* for printing data about the commands and it's args */
+			if (it->first == Commands[command_choice]) {
+				(this->*Command[command_choice])(client_fd);
+				return ;
+			}
+			command_choice++;
+			it++;
+		}
+	}
+}
 
 /*
 	- Note to self: Tokenizer seems somewhat done. All i need to do now is
@@ -414,8 +425,7 @@ void	Server::Interpreter(int __unused client_fd) {
 		while (getline(holder, tmp, ' '))
 			args.push_back(tmp);
 		command.insert(std::pair<std::string, std::vector<std::string> >(command_temp, args));
-		std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
-		//FindCommand(client_fd);
+		FindCommand(client_fd);
 		token = std::strtok(NULL, "\r\n");
 	}
 	command.clear();

@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 19:05:52 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/09/30 20:15:24 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,8 +106,8 @@ class Server : public AddressData
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
 
 		/* ===============Interpreter================ */
-		// void		PONG(int client_fd);
+		void		PONG(int client_fd);
 		void		Interpreter(int client_fd);
-		// void		FindCommand(int client_fd);
+		void		FindCommand(int client_fd);
 		
 };
