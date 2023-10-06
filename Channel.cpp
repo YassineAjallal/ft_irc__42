@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/05 20:28:57 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/06 11:26:39 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,9 +42,10 @@ std::string 	Channel::getPassword() const
 	return (this->_password);
 }
 
-void			Channel::setPassword(const std::string& new_password)
+void			Channel::setPassword(const std::string& new_password, bool has_password)
 {
 	this->_password = new_password;
+	this->_has_password = has_password;
 }
 bool 			Channel::getHasPassword() const
 {
@@ -61,9 +62,9 @@ size_t			Channel::getSize() const
 	return (this->_size);
 }
 
-void			Channel::setSize(const size_t& s)
+void			Channel::setSize(const int& s)
 {
-	this->_size = s;
+	this->_size = (s > MAX_SIZE ? MAX_SIZE : s);
 }
 
 std::string		Channel::getTopic() const
@@ -140,7 +141,7 @@ void 			Channel::join(Client &client)
 		client.SetMessage(ERR_INVITEONLYCHAN(client.getName(), this->_name));
 	else
 	{
-		if (this->_members.size() >= this->_size)
+		if ((int)this->_members.size() >= this->_size && this->_size != -1)
 			client.SetMessage(ERR_CHANNELISFULL(client.getName(), this->_name));
 		else
 		{
@@ -189,8 +190,8 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name));
 	else
 	{
-		it = std::find(this->_operators.begin(), this->_operators.end(), client);
-		if (!(*it).getOperatorPrev())
+		it = std::find(this->_members.begin(), this->_members.end(), client);
+		if (it->getOperatorPrev())
 			client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
 		else if (!this->_on_channel(kicked))
 			client.SetMessage(ERR_USERNOTINCHANNEL(client.getName(), kicked.getName(), this->_name));
@@ -203,20 +204,40 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-// void			Channel::mode(Client &client, std::string mode)
-// {
+void			Channel::channel_mode(Client __unused &client, bool add_remove, std::pair<std::string, std::string> mode)
+{
 	
-// }
+	if (mode.first == "i")
+		this->_invite_only = add_remove;
+	else if (mode.first == "k")
+		this->setPassword(mode.second, add_remove);
+	else if (mode.first == "l")
+		this->_size = (add_remove ? atoi(mode.second.c_str()) : -1);
+	
+}
+
+void		Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
+{
+	std::vector<Member>::iterator member_it;
+	member_it = std::find(this->_members.begin(), this->_members.end(), member);
+	if (member_it == this->_members.end())
+		client.SetMessage(ERR_USERNOTINCHANNEL(client.getName(), member.getName(), this->_name));
+	else if (mode == "o")
+		member_it->setOperatorPrev(add_remove);
+	else if (mode == "t")
+		member_it->setTopicPrev(add_remove);
+}
+
 void			Channel::invite(Client& client, Client &invited)
 {
 	std::vector<Member>::iterator client_it;
 	std::vector<Member>::iterator invited_it;
 
-	client_it = std::find(this->_members.begin(), this->_members.end(), client)
+	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	invited_it = std::find(this->_members.begin(), this->_members.end(), invited);
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name()));
-	else if (this->_invite_only && !client_it->_operator_prev)
+		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name));
+	else if (this->_invite_only && !client_it->getOperatorPrev())
 		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
 	else if (invited_it != this->_members.end())
 		client.SetMessage(ERR_USERONCHANNEL(client.getName(), invited.getName(), this->_name));
@@ -258,13 +279,18 @@ std::string		Channel::show_users(Client client) const
 {
 	std::string users;
 	users += client.getName() + " = " + this->_name + " :";
-	// for(size_t i = 0; i < this->_operators.size(); i++)
-	// 	users += RPL_NAMREPLY((i == 0 ? "~@" : "@"), this->_operators[i].getClient().getName());
-
-	/* -------------- print previliges !!!!!! --------- */
-
 	for(size_t i = 0; i < this->_members.size(); i++)
-		users += RPL_NAMREPLY("", this->_members[i].getClient()->getName());
+		users += RPL_NAMREPLY(this->_members_prefixes(this->_members[i]),
+								this->_members[i].getClient()->getName());
 	users += "\r\n";
 	return (users);
+}
+
+std::string			Channel::_members_prefixes(const Member& member) const
+{
+	std::string prefixes = "\e[0;34m";
+	prefixes += member.getFounderPrev() ? "~" : "";
+	prefixes += member.getOperatorPrev() ? "@" : "";
+	prefixes += "\e[0m";
+	return (prefixes);
 }

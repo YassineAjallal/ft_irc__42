@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/05 20:30:14 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/06 11:25:03 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,38 +52,37 @@ class Channel {
 		Channel(const std::string& name, const std::string& password);
 		~Channel();
 		
-		std::string 	getName() const;
-		std::string 	getPassword() const;
-		void			setPassword(const std::string& new_password);
-		bool			getHasPassword() const;
-		void			setHasPassword(bool b);
-		size_t			getSize() const;
-		void			setSize(const size_t& s);
-		std::string		getTopic() const;
-		void			setTopicSetter(const std::string& ts);
-		void			setTopicTime(const std::string& tt);
-		bool			getInviteOnly() const;
-		void			setInviteOnly(bool b);
+		std::string 		getName() const;
+		std::string 		getPassword() const;
+		void				setPassword(const std::string& new_password, bool has_password);
+		bool				getHasPassword() const;
+		void				setHasPassword(bool b);
+		size_t				getSize() const;
+		void				setSize(const int& s);
+		std::string			getTopic() const;
+		void				setTopicSetter(const std::string& ts);
+		void				setTopicTime(const std::string& tt);
+		bool				getInviteOnly() const;
+		void				setInviteOnly(bool b);
 
-		
+		void 				join(Client &client);
+		void 				part(Client &client, std::string reason);
+		void				kick(Client &client, Client &kicked, std::string reason);
+		void				channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
+		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
+		void				topic(Client &client, bool topic_exist, std::string topic);
+		void				name();
+		void				list();
+		void				invite(Client& client, Client &invited);
+		void				sendToAll(Client &client, std::string msg);
+		std::string			show_users(Client client) const;
 	
-		void 			join(Client &client);
-		void 			part(Client &client, std::string reason);
-		void			kick(Client &client, Client &kicked, std::string reason);
-		void			mode(Client &client, std::string mode);
-		void			topic(Client &client, bool topic_exist, std::string topic);
-		void			name();
-		void			list();
-		void			invite(Client& client, Client &invited);
-		void			sendToAll(Client &client, std::string msg);
-		std::string		show_users(Client client) const;
-
-		bool		operator==(const Channel& c);
-		bool		operator!=(const Channel& c);
+		bool				operator==(const Channel& c);
+		bool				operator!=(const Channel& c);
 
 	private:
 		std::string 		_name;
-		size_t				_size;
+		int					_size;
 		bool				_has_password;
 		bool				_invite_only;
 		bool				_has_topic;
@@ -98,6 +97,7 @@ class Channel {
 		void				_add_member(Client &client, bool role);
 		void				_remove_member(Client &client);
 		std::string			_get_time();
+		std::string			_members_prefixes(const Member& member) const;
 };
 
 #endif // Channel_HPP
