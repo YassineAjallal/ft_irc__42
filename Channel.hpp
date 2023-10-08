@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/06 11:25:03 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/06 12:12:12 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,8 +77,8 @@ class Channel {
 		void				sendToAll(Client &client, std::string msg);
 		std::string			show_users(Client client) const;
 	
-		bool				operator==(const Channel& c);
-		bool				operator!=(const Channel& c);
+		bool				operator==(const std::string& c);
+		bool				operator!=(const std::string& c);
 
 	private:
 		std::string 		_name;

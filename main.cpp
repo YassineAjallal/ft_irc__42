@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/05 19:04:48 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/08 15:58:29 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,13 +58,23 @@ void topic_test (std::vector<Client>& clients, Channel chan)
 }
 
 int main(int __unused ac, char __unused **av) {
-	std::vector<Client> clients;
-	for (size_t i = 0; i < 4; i++)
-	{
-		clients.push_back(Client(i * 10, 1));
-		clients[i].SetName(std::to_string(i * 10) + "\'cl");
+	if (ac == 3) {
+		Server ServerHandler;
+		if (ServerHandler.CreateServer(av[1], av[2]))
+			return 1;
 	}
-	Channel chan = test_channel(clients);
-	topic_test(clients, chan);
+	else {
+		std::cerr << "GUIDE: ./ircserv port password" << std::endl;
+		return 2;
+	}
+	return 0;
+	// std::vector<Client> clients;
+	// for (size_t i = 0; i < 4; i++)
+	// {
+	// 	clients.push_back(Client(i * 10, 1));
+	// 	clients[i].SetName(std::to_string(i * 10) + "\'cl");
+	// }
+	// Channel chan = test_channel(clients);
+	// topic_test(clients, chan);
 	return 0;
 }

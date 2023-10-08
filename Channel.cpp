@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/06 11:26:39 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/06 12:12:56 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,14 +100,14 @@ void			Channel::setInviteOnly(bool b)
 	this->_invite_only = b;
 }
 
-bool			Channel::operator==(const Channel& c)
+bool			Channel::operator==(const std::string& c)
 {
-	return (this->_name == c.getName());
+	return (this->_name == c);
 }
 
-bool			Channel::operator!=(const Channel& c)
+bool			Channel::operator!=(const std::string& c)
 {
-	return (this->_name != c.getName());
+	return (this->_name != c);
 }
 
 bool			Channel::_on_channel(Client &client)
@@ -204,28 +204,47 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-void			Channel::channel_mode(Client __unused &client, bool add_remove, std::pair<std::string, std::string> mode)
+void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
 {
-	
-	if (mode.first == "i")
-		this->_invite_only = add_remove;
-	else if (mode.first == "k")
-		this->setPassword(mode.second, add_remove);
-	else if (mode.first == "l")
-		this->_size = (add_remove ? atoi(mode.second.c_str()) : -1);
+	std::vector<Member>::iterator client_it;
+
+	client_it = std::find(this->_members.begin(), this->_members.end(), client);
+	if (!this->_on_channel(client))
+		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name));
+	else if (!client_it->getOperatorPrev())
+		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
+	else
+	{
+		if (mode.first == "i")
+			this->_invite_only = add_remove;
+		else if (mode.first == "k")
+			this->setPassword(mode.second, add_remove);
+		else if (mode.first == "l")
+			this->_size = (add_remove ? atoi(mode.second.c_str()) : -1);
+	}
 	
 }
 
 void		Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
 {
 	std::vector<Member>::iterator member_it;
+	std::vector<Member>::iterator client_it;
+
 	member_it = std::find(this->_members.begin(), this->_members.end(), member);
-	if (member_it == this->_members.end())
-		client.SetMessage(ERR_USERNOTINCHANNEL(client.getName(), member.getName(), this->_name));
-	else if (mode == "o")
-		member_it->setOperatorPrev(add_remove);
-	else if (mode == "t")
-		member_it->setTopicPrev(add_remove);
+	client_it = std::find(this->_members.begin(), this->_members.end(), client);
+	if (!this->_on_channel(client))
+		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name));
+	else if (!client_it->getOperatorPrev())
+		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
+	else
+	{
+		if (member_it == this->_members.end())
+			client.SetMessage(ERR_USERNOTINCHANNEL(client.getName(), member.getName(), this->_name));
+		else if (mode == "o")
+			member_it->setOperatorPrev(add_remove);
+		else if (mode == "t")
+			member_it->setTopicPrev(add_remove);
+	}
 }
 
 void			Channel::invite(Client& client, Client &invited)
