@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 20:15:24 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/08 15:22:23 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@
 #include <cstring>
 #include <sstream>
 #include "Toolkit.hpp"
+#include "Parse.hpp"
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
@@ -106,8 +107,10 @@ class Server : public AddressData
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
 
 		/* ===============Interpreter================ */
-		void		PONG(int client_fd);
+		// void		PONG(int client_fd);
+        void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
-		void		FindCommand(int client_fd);
+        Parse       CreateCommandData(int client_fd, CommandType type);
+		// void		FindCommand(int client_fd);
 		
 };

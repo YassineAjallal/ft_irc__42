@@ -6,14 +6,14 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/01 13:42:53 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/08 15:40:58 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
 #include "Client.hpp"
- 
+
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
 {
@@ -374,37 +374,106 @@ void	Server::OnServerLoop(void) {
 
 /* ========== INTERPRETER SECTION =========== */
 
-void	Server::PONG(int client_fd) {
-	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
-	send_buffer += "PONG " + client_ip + " ";
+// void	Server::PONG(int client_fd) {
+// 	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
+// 	send_buffer += "PONG " + client_ip + " ";
 	
-	for (size_t i = 0; i < command.begin()->second.size(); i++)
-		send_buffer += command.begin()->second.at(i);
+// 	for (size_t i = 0; i < command.begin()->second.size(); i++)
+// 		send_buffer += command.begin()->second.at(i);
 	
-	clients.at(client_fd).SetMessage(send_buffer);
+// 	clients.at(client_fd).SetMessage(send_buffer);
+// }
+
+// void	Server::FindCommand(int client_fd) {
+// 	size_t	command_choice = 0;
+// 	std::string Commands[1] = { "PING" };
+// 	void (Server::*Command[1])(int) = { &Server::PONG };
+
+// 	std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
+// 	while (it != this->command.end()) {
+// 		command_choice = 0;
+// 		std::cout << "Command: " + it->first + " Args:";
+// 		while (command_choice < Commands->size()) {
+// 			for (size_t i = 0; i < it->second.size(); i++)
+// 				std::cout << "[" + it->second.at(i) + "]" << "Size: " << it->second.size() << "Iter: " << i << std::endl;
+// 				 /* for printing data about the commands and it's args */
+// 			if (it->first == Commands[command_choice]) {
+// 				(this->*Command[command_choice])(client_fd);
+// 				return ;
+// 			}
+// 			command_choice++;
+// 			it++;
+// 		}
+// 	}
+// }
+
+/**
+ * Prints the command data from the given Parse object.
+ *
+ * @param Data the Parse object containing the command data
+ *
+ * @return void
+ *
+ * @throws None
+ */
+void    Server::PrintCommandData(Parse &Data) {
+    std::vector<string> tmp = Data.getTarget();
+    std::vector<string>::iterator it = tmp.begin();
+
+    std::cout << "- Command: " + Data.getCommand() << std::endl;
+    std::cout << "- Targets: " << std::endl;
+    while (it != tmp.end())
+        std::cout << "      - " + *(it++) << std::endl;
+    std::cout << "- Args: " << std::endl;
+    tmp = Data.getArgs();
+    it = tmp.begin();
+    while (it != tmp.end())
+        std::cout << "      - " + *(it++) << std::endl;
+    std::cout << "- Message: " + Data.getMessage() << std::endl;
+    std::cout << "- Type: " << (Data.getType() ? "MSGINCLUDED" : "MSGNOTINCLUDED") << std::endl;
+    std::cout << std::endl;
 }
 
-void	Server::FindCommand(int client_fd) {
-	size_t	command_choice = 0;
-	std::string Commands[1] = { "PING" };
-	void (Server::*Command[1])(int) = { &Server::PONG };
-
-	std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
-	while (it != this->command.end()) {
-		command_choice = 0;
-		std::cout << "Command: " + it->first + " Args:";
-		while (command_choice < Commands->size()) {
-			for (size_t i = 0; i < it->second.size(); i++)
-				std::cout << "[" + it->second.at(i) + "]" << "Size: " << it->second.size() << "Iter: " << i << std::endl;
-				 /* for printing data about the commands and it's args */
-			if (it->first == Commands[command_choice]) {
-				(this->*Command[command_choice])(client_fd);
-				return ;
-			}
-			command_choice++;
-			it++;
-		}
-	}
+Parse   Server::CreateCommandData(int client_fd, CommandType type) {
+    Parse Data(clients.at(FindClient(client_fd)));
+    std::string str = clients.at(FindClient(client_fd)).GetBuffer();
+    std::string Accumulated_Message;
+    std::vector<string> args;
+    std::vector<string> targets;
+    
+    targets.clear();
+    char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
+    if (token)
+        Data.setCommand(token);
+    while (token) {
+        token = std::strtok(NULL, " ");
+        if (token)
+            args.push_back(token);
+    }
+    std::vector<string>::iterator it = args.begin();
+    if (type == MSGINCLUDED) {
+        while (it != args.end()) {
+            size_t pos = it->find(":");
+            if (pos != std::string::npos) {
+                it->erase(pos, 1);
+                while (it != args.end())
+                    Accumulated_Message += *(it++);
+                Data.setMessage(Accumulated_Message);
+                break ;
+            } else
+                targets.push_back(*it);
+            it++;
+        }
+        Data.setTarget(targets);
+        args.clear();
+    } else if (type == MSGNOTINCLUDED) {
+        Data.setArgs(args);
+        Data.setMessage("");
+        Data.setTarget(targets);
+        Data.setType(MSGNOTINCLUDED);
+    }
+    Data.setType(type);
+    return Data;
 }
 
 /*
@@ -412,21 +481,15 @@ void	Server::FindCommand(int client_fd) {
 	to parse more 
 
 */
-void	Server::Interpreter(int __unused client_fd) {
-	char *token = std::strtok(const_cast<char *>(raw_data.c_str()), "\r\n");
-	while (token) {
-		std::string command_temp;
-		std::string tmp;
-		std::vector<std::string> args;
-		std::stringstream holder(token);
-	
-		std::cout << raw_data << std::endl;
-		std::getline(holder, command_temp, ' ');
-		while (getline(holder, tmp, ' '))
-			args.push_back(tmp);
-		command.insert(std::pair<std::string, std::vector<std::string> >(command_temp, args));
-		FindCommand(client_fd);
-		token = std::strtok(NULL, "\r\n");
-	}
-	command.clear();
+void	Server::Interpreter(int client_fd) {
+    Parse Data(clients.at(FindClient(client_fd)));
+    if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
+        Data = CreateCommandData(client_fd, MSGINCLUDED);
+    } else {
+        Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
+    }
+    PrintCommandData(Data);
+    /*
+        - Function to execute what's inside the Parse Data
+    */
 }
