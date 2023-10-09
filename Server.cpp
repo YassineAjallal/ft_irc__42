@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 15:59:09 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/09 17:05:40 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 #include "Toolkit.hpp"
 #include "Client.hpp"
 #include "Parse.hpp"
-
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
 {
@@ -339,6 +338,7 @@ void	Server::OnServerFdQueue(void) {
 				continue ;
 			}
 			Interpreter(c_fd_queue[i].fd);
+			this->join(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
@@ -435,8 +435,8 @@ void    Server::PrintCommandData(Parse &Data) {
     std::cout << std::endl;
 }
 
-Parse   Server::CreateCommandData(int client_fd, CommandType type) {
-    Parse Data(clients.at(FindClient(client_fd)));
+void   Server::CreateCommandData(int client_fd, CommandType type) {
+    this->_data = new Parse(clients.at(FindClient(client_fd)));
     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
     std::string Accumulated_Message;
     std::vector<string> args;
@@ -445,7 +445,7 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
     if (token)
-        Data.setCommand(token);
+        this->_data->setCommand(token);
     while (token) {
         token = std::strtok(NULL, " ");
         if (token)
@@ -459,22 +459,22 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
                 it->erase(pos, 1);
                 while (it != args.end())
                     Accumulated_Message += *(it++);
-                Data.setMessage(Accumulated_Message);
+                this->_data->setMessage(Accumulated_Message);
                 break ;
             } else
                 targets.push_back(*it);
             it++;
         }
-        Data.setTarget(targets);
+        this->_data->setTarget(targets);
         args.clear();
     } else if (type == MSGNOTINCLUDED) {
-        Data.setArgs(args);
-        Data.setMessage("");
-        Data.setTarget(targets);
-        Data.setType(MSGNOTINCLUDED);
+        this->_data->setArgs(args);
+        this->_data->setMessage("");
+        this->_data->setTarget(targets);
+        this->_data->setType(MSGNOTINCLUDED);
     }
-    Data.setType(type);
-    return Data;
+    this->_data->setType(type);
+    // return Data;
 }
 
 /*
@@ -483,14 +483,64 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
 
 */
 void	Server::Interpreter(int client_fd) {
-    Parse Data(clients.at(FindClient(client_fd)));
+    // Parse Data(clients.at(FindClient(client_fd)));
     if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
-        Data = CreateCommandData(client_fd, MSGINCLUDED);
+        CreateCommandData(client_fd, MSGINCLUDED);
     } else {
-        Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
+        CreateCommandData(client_fd, MSGNOTINCLUDED);
     }
-    PrintCommandData(Data);
+    PrintCommandData(*this->_data);
     /*
         - Function to execute what's inside the Parse Data
     */
 }
+
+// void	Server::nick(int client_fd)
+// {
+// 	Interpreter(client_fd);
+// 	Client&		client = this->_data->getClient();
+// 	client.SetName(this->_data->getArgs().at(0));
+// }
+
+void	Server::join(int __unused client_fd)
+{
+	std::string 					channel_name;
+	std::string 					channel_password;						
+	std::list<Channel>::iterator	channel_it;
+
+	channel_name = this->_data->getArgs().at(0);
+	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "" );
+	channel_it = std::find((*this)._channels.begin(), (*this)._channels.end(), channel_name);
+	if (channel_it != (*this)._channels.end())
+	{
+		std::cout << "channel exist" << std::endl;
+		if (channel_it->getHasPassword())
+		{
+			if (channel_it->getPassword() == channel_password)
+			{
+				std::cout << "correct" << std::endl;
+				channel_it->join(this->_data->getClient());
+			}
+			else
+			{
+				std::cout << "incorrect" << std::endl;
+				this->_data->getClient().SetMessage(
+							ERR_BADCHANNELKEY(this->_data->getClient().getName(), channel_it->getName()));
+			}
+		}
+		else
+			channel_it->join(this->_data->getClient());
+	}
+	else
+	{
+		(*this)._channels.push_back(
+									this->_data->getArgs().size() == 2 
+									? Channel(channel_name, channel_password)
+									: Channel(channel_name));
+		channel_it = this->_channels.begin();
+		std::advance(channel_it, this->_channels.size() - 1);
+		std::cout << channel_it->getName() << std::endl;
+		channel_it->join(this->_data->getClient());
+	}
+}
+

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/04 11:55:16 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/09 11:52:48 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,17 +48,17 @@ class Client : public AddressDataClient
 		Client &operator=(const Client& copy);
 		~Client();
 
-		int			getSockID() const;
-		std::string	getName() const;
-		bool		ShouldBeKicked() const;
-		void		SetKickStatus(bool status);
-		int			JustConnectedStatus() const;
+		int					getSockID() const;
+		std::string			getName() const;
+		bool				ShouldBeKicked() const;
+		void				SetKickStatus(bool status);
+		int					JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
-		void		SetName(const std::string& name);
-		void		SetJustConnectedStatus(bool status);
+		void				SetName(const std::string& name);
+		void				SetJustConnectedStatus(bool status);
 		const std::string&	GetMessageBuffer(void) const;
-		void		SetBuffer(const std::string& buffer);
-		void		SetMessage(const std::string& buffer);
+		void				SetBuffer(const std::string& buffer);
+		void				SetMessage(const std::string& buffer);
 		// compariason operator of client
 		bool		operator<(const Client& c);
 		bool		operator>(const Client& c);

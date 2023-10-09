@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 15:22:23 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/09 12:59:44 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +30,10 @@
 #include <cerrno>
 #include <cstring>
 #include <sstream>
+#include <list>
 #include "Toolkit.hpp"
 #include "Parse.hpp"
+#include "Channel.hpp"
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
@@ -39,16 +41,16 @@
 #define SRH 1
 
 #define INTRO "Welcome to:\n" \
-"	██████  ▄▄▄       ██▀███   ▄▄▄       ██░ ██     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
-"▒██    ▒ ▒████▄    ▓██ ▒ ██▒▒████▄    ▓██░ ██▒   ▓██▒▓██ ▒ ██▒▒██▀ ▀█     ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒▓█   ▀ ▓██ ▒ ██▒ \n" \
-"░ ▓██▄   ▒██  ▀█▄  ▓██ ░▄█ ▒▒██  ▀█▄  ▒██▀▀██░   ▒██▒▓██ ░▄█ ▒▒▓█    ▄    ░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░▒███   ▓██ ░▄█ ▒ \n" \
-"  ▒   ██▒░██▄▄▄▄██ ▒██▀▀█▄  ░██▄▄▄▄██ ░▓█ ░██    ░██░▒██▀▀█▄  ▒▓▓▄ ▄██▒     ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░▒▓█  ▄ ▒██▀▀█▄   \n" \
-"▒██████▒▒ ▓█   ▓██▒░██▓ ▒██▒ ▓█   ▓██▒░▓█▒░██▓   ░██░░██▓ ▒██▒▒ ▓███▀ ░   ▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ░▒████▒░██▓ ▒██▒ \n" \
-"▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░ ▒▓ ░▒▓░ ▒▒   ▓▒█░ ▒ ░░▒░▒   ░▓  ░ ▒▓ ░▒▓░░ ░▒ ▒  ░   ▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ░░ ▒░ ░░ ▒▓ ░▒▓░ \n" \
-"░ ░▒  ░ ░  ▒   ▒▒ ░  ░▒ ░ ▒░  ▒   ▒▒ ░ ▒ ░▒░ ░    ▒ ░  ░▒ ░ ▒░  ░  ▒      ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░   ░ ░  ░  ░▒ ░ ▒░ \n" \
-"░  ░  ░    ░   ▒     ░░   ░   ░   ▒    ░  ░░ ░    ▒ ░  ░░   ░ ░           ░  ░  ░     ░     ░░   ░      ░░     ░     ░░   ░  \n" \
-"      ░        ░  ░   ░           ░  ░ ░  ░  ░    ░     ░     ░ ░               ░     ░  ░   ░           ░     ░  ░   ░      \n" \
-"                                                              ░                                         ░                   \r\n"
+"     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
+"   ▓██▒▓██ ▒ ██▒▒██▀ ▀█     ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒▓█   ▀ ▓██ ▒ ██▒ \n" \
+"   ▒██▒▓██ ░▄█ ▒▒▓█    ▄    ░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░▒███   ▓██ ░▄█ ▒ \n" \
+"   ░██░▒██▀▀█▄  ▒▓▓▄ ▄██▒     ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░▒▓█  ▄ ▒██▀▀█▄   \n" \
+"   ░██░░██▓ ▒██▒▒ ▓███▀ ░   ▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ░▒████▒░██▓ ▒██▒ \n" \
+"   ░▓  ░ ▒▓ ░▒▓░░ ░▒ ▒  ░   ▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ░░ ▒░ ░░ ▒▓ ░▒▓░ \n" \
+"    ▒ ░  ░▒ ░ ▒░  ░  ▒      ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░   ░ ░  ░  ░▒ ░ ▒░ \n" \
+"    ▒ ░  ░░   ░ ░           ░  ░  ░     ░     ░░   ░      ░░     ░     ░░   ░  \n" \
+"    ░     ░     ░ ░               ░     ░  ░   ░           ░     ░  ░   ░      \n" \
+"                                                              ░                                          ░                   \r\n"
 #define DIE "Wrong password:\n" \
 "██▄   ▄█ ▄███▄   \n" \
 "█  █  ██ █▀   ▀  \n" \
@@ -79,14 +81,16 @@ class Server : public AddressData
 		bool	CreateServer(const std::string &port, const std::string &pass);
 
 	private:
-		size_t		client_count;
-		std::string password;
-		std::vector<Client> clients;
-		std::vector<struct pollfd> c_fd_queue;
-		std::vector<int> client_fds;
-		std::string raw_data;
-		std::string send_buffer;
-		std::map<std::string, std::vector<std::string> > command;
+		size_t						client_count;
+		std::string 				password;
+		std::vector<Client> 		clients;
+		std::vector<struct pollfd>	c_fd_queue;
+		std::vector<int> 			client_fds;
+		std::string 				raw_data;
+		std::string 				send_buffer;
+		Parse*						_data;
+		std::list<Channel>			_channels;
+		// std::map<std::string, std::vector<std::string> > command;
 
 		/* =============Server Functions============ */
 		void		KickClients(void);
@@ -108,9 +112,14 @@ class Server : public AddressData
 
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);
+		
         void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
-        Parse       CreateCommandData(int client_fd, CommandType type);
+        void		CreateCommandData(int client_fd, CommandType type);
 		// void		FindCommand(int client_fd);
+
+		// commands
+		void		nick(int client_fd);
+		void		join(int client_fd);
 		
 };
