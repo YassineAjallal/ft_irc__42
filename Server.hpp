@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/09 12:59:44 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/11 10:46:35 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -119,7 +119,8 @@ class Server : public AddressData
 		// void		FindCommand(int client_fd);
 
 		// commands
-		void		nick(int client_fd);
-		void		join(int client_fd);
+		void		nick();
+		void		join();
+		void		kick();
 		
 };

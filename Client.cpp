@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/04 11:57:02 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/11 14:53:11 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,12 +46,20 @@ std::string Client::getName() const {
 	return (this->name);
 }
 
+std::string Client::getNick() const {
+	return (this->nick);
+}
+
 int Client::JustConnectedStatus() const {
 	return (this->just_connected);
 }
 
 void	Client::SetName(const std::string& name) {
 	this->name = name;
+}
+
+void	Client::SetNick(const std::string& nick) {
+	this->nick = nick;
 }
 
 void	Client::SetJustConnectedStatus(bool status) {
@@ -75,7 +83,7 @@ const std::string&	Client::GetBuffer(void) const {
 	return (this->raw_data);
 }
 
-const std::string&	Client::GetMessageBuffer(void) const {
+std::string&	Client::GetMessageBuffer(void) {
 	return (this->send_buffer);
 }
 

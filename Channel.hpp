@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/06 12:12:12 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/11 10:22:27 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@
 #define ERR_NOSUCHCHANNEL(client, channel) ("(403) " + client + " " + channel + " :No such channel\r\n")
 #define ERR_TOOMANYCHANNELS(client, channel) ("(405) " + client + " " + channel + " :You have joined too many channels\r\n")
 #define ERR_BADCHANNELKEY(client, channel) ("(475) " + client + " " + channel + " :Cannot join channel (+k)\r\n")
-#define ERR_BANNEDFROMCHAN(client, channel) ("(474) ") + client + " " + channel + " :Cannot join channel (+b)\r\n")
+#define ERR_BANNEDFROMCHAN(client, channel) ("(474) " + client + " " + channel + " :Cannot join channel (+b)\r\n")
 #define ERR_CHANNELISFULL(client, channel) ("(471) " + client + " " + channel + " :Cannot join channel (+l)\r\n")
 #define ERR_INVITEONLYCHAN(client, channel) ("(473) " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 #define ERR_BADCHANMASK(channel) ("(476) " + channel + " :Bad Channel Mask\r\n")
@@ -75,7 +75,7 @@ class Channel {
 		void				list();
 		void				invite(Client& client, Client &invited);
 		void				sendToAll(Client &client, std::string msg);
-		std::string			show_users(Client client) const;
+		std::string			show_users(Client& client) const;
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);

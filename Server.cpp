@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/09 17:05:40 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/11 12:45:16 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,9 +198,9 @@ void	Server::InsertClient(int client_fd) {
 		this->clients.push_back(User);
 		CopySockData(client_fd);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
-		send(client_fd, INTRO, _strlen(INTRO), 0);
+		//send(client_fd, INTRO, _strlen(INTRO), 0);
 		this->client_fds.push_back(client_fd);
-		this->client_count++;
+		this->client_count = this->c_fd_queue.size() - 1;
 }
 
 /*
@@ -238,6 +238,8 @@ void	Server::ReadClientFd(int client_fd) {
 			}
 		}
 		clients.at(FindClient(client_fd)).SetBuffer(raw_data);
+		
+		// std::cout << "FD ID:" << client_fd << "\nMessage:" <<  clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
 	}
 }
 
@@ -247,8 +249,9 @@ void	Server::ReadClientFd(int client_fd) {
 */
 void	Server::SendClientMessage(int client_fd) {
 	if (!clients.at(FindClient(client_fd)).GetMessageBuffer().empty()) {
-		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length() - 1, 0);
+		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length(), 0);
 	}
+	clients.at(FindClient(client_fd)).GetMessageBuffer().clear();
 	send_buffer.clear();
 }
 
@@ -256,17 +259,7 @@ void	Server::SendClientMessage(int client_fd) {
 	- Checks whether the client has just connected.
 */
 bool	Server::JustConnected(int socketfd) {
-	size_t i = 0;
-
-	if (!this->clients.empty()) {
-		while (i < this->clients.size()) {
-			if (socketfd == clients[i].getSockID()) {
-				return clients[i].JustConnectedStatus();
-			}
-			i++;
-		}
-	}
-	return 0;
+	return clients.at(FindClient(socketfd)).JustConnectedStatus();
 }
 
 /*
@@ -296,6 +289,7 @@ void	Server::Authenticate(int client_fd) {
 	size_t index;
 
 	index = FindClient(client_fd);
+
 	if (index >= 0) {
 		pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
 		while (pass != NULL) {
@@ -310,7 +304,8 @@ void	Server::Authenticate(int client_fd) {
 			DeleteClient(client_fd);
 			return ;
 		}
-		clients.at(index).SetJustConnectedStatus(false);
+		clients.at(index).SetJustConnectedStatus(false);		
+		
 	}
 }
 
@@ -326,7 +321,7 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
-	for (size_t i = 1; i < this->client_count + 1; i++) {
+	for (size_t i = 1; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 			DeleteClient(c_fd_queue[i].fd);
@@ -335,10 +330,12 @@ void	Server::OnServerFdQueue(void) {
 			ReadClientFd(this->c_fd_queue[i].fd);
 			if (JustConnected(c_fd_queue[i].fd)) {
 				Authenticate(c_fd_queue[i].fd);
+				raw_data.clear();
+				send_buffer.clear();
 				continue ;
+			} else {
+				Interpreter(c_fd_queue[i].fd);
 			}
-			Interpreter(c_fd_queue[i].fd);
-			this->join(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
@@ -436,8 +433,9 @@ void    Server::PrintCommandData(Parse &Data) {
 }
 
 void   Server::CreateCommandData(int client_fd, CommandType type) {
-    this->_data = new Parse(clients.at(FindClient(client_fd)));
+    // this->_data = new Parse(clients.at(FindClient(client_fd)));
     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
+	str.replace(str.find("\r\n"), 2, "");
     std::string Accumulated_Message;
     std::vector<string> args;
     std::vector<string> targets;
@@ -483,64 +481,72 @@ void   Server::CreateCommandData(int client_fd, CommandType type) {
 
 */
 void	Server::Interpreter(int client_fd) {
-    // Parse Data(clients.at(FindClient(client_fd)));
-    if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
-        CreateCommandData(client_fd, MSGINCLUDED);
-    } else {
-        CreateCommandData(client_fd, MSGNOTINCLUDED);
-    }
+    this->_data = new Parse(clients.at(FindClient(client_fd)));
+	if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
+		CreateCommandData(client_fd, MSGINCLUDED);
+	} else {
+		CreateCommandData(client_fd, MSGNOTINCLUDED);
+	}
+	
     PrintCommandData(*this->_data);
+	// std::cout << "-------" << this->_data->getCommand() << "-------" << std::endl;
+	if (this->_data->getCommand() == "NICK")
+		this->nick();
+	else if (this->_data->getCommand() == "JOIN")
+		this->join();
     /*
         - Function to execute what's inside the Parse Data
     */
 }
 
-// void	Server::nick(int client_fd)
-// {
-// 	Interpreter(client_fd);
-// 	Client&		client = this->_data->getClient();
-// 	client.SetName(this->_data->getArgs().at(0));
-// }
+void	Server::nick()
+{
+	Client&		client = this->_data->getClient();
+	std::string	nickname;
+	if (this->_data->getArgs().size() != 0)
+	{
+		std::string  nickname = this->_data->getArgs().at(0);
+		client.SetName(nickname);
+	}
+	
+}
 
-void	Server::join(int __unused client_fd)
+void	Server::join()
 {
 	std::string 					channel_name;
 	std::string 					channel_password;						
 	std::list<Channel>::iterator	channel_it;
 
 	channel_name = this->_data->getArgs().at(0);
-	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "" );
+	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "");
 	channel_it = std::find((*this)._channels.begin(), (*this)._channels.end(), channel_name);
 	if (channel_it != (*this)._channels.end())
 	{
-		std::cout << "channel exist" << std::endl;
 		if (channel_it->getHasPassword())
 		{
 			if (channel_it->getPassword() == channel_password)
-			{
-				std::cout << "correct" << std::endl;
 				channel_it->join(this->_data->getClient());
-			}
 			else
-			{
-				std::cout << "incorrect" << std::endl;
 				this->_data->getClient().SetMessage(
 							ERR_BADCHANNELKEY(this->_data->getClient().getName(), channel_it->getName()));
-			}
 		}
 		else
 			channel_it->join(this->_data->getClient());
 	}
 	else
 	{
-		(*this)._channels.push_back(
-									this->_data->getArgs().size() == 2 
+		this->_channels.push_back(
+									this->_data->getArgs().size() == 2
 									? Channel(channel_name, channel_password)
 									: Channel(channel_name));
 		channel_it = this->_channels.begin();
 		std::advance(channel_it, this->_channels.size() - 1);
-		std::cout << channel_it->getName() << std::endl;
 		channel_it->join(this->_data->getClient());
 	}
+}
+
+void	Server::kick()
+{
+	// std::string	channel_name;
 }
 

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/09 11:52:48 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/11 14:52:14 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ class Client : public AddressDataClient
 {
 	private:
 		std::string	 	name;
+		std::string		nick;
 		int	 			socket_id;
 		//int  channel_id;
 		bool 			just_connected;
@@ -50,13 +51,15 @@ class Client : public AddressDataClient
 
 		int					getSockID() const;
 		std::string			getName() const;
+		std::string			getNick() const;
 		bool				ShouldBeKicked() const;
 		void				SetKickStatus(bool status);
 		int					JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
 		void				SetName(const std::string& name);
+		void				SetNick(const std::string& nick);
 		void				SetJustConnectedStatus(bool status);
-		const std::string&	GetMessageBuffer(void) const;
+		std::string&	GetMessageBuffer(void);
 		void				SetBuffer(const std::string& buffer);
 		void				SetMessage(const std::string& buffer);
 		// compariason operator of client

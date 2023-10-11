@@ -12,7 +12,7 @@ Member::~Member(){}
 
 bool Member::operator==(const Client& client)
 {
-	return (this->_client->getName() == client.getName());
+	return (this->_client->getSockID() == client.getSockID());
 }
 
 Client* Member::getClient() const
@@ -22,7 +22,7 @@ Client* Member::getClient() const
 
 bool Member::operator!=(const Client& client)
 {
-	return (this->_client->getName() != client.getName());
+	return (this->_client->getSockID() != client.getSockID());
 }
 
 bool	Member::getOperatorPrev() const
