@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 15:40:58 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 16:55:42 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -198,7 +198,7 @@ void	Server::InsertClient(int client_fd) {
 		this->clients.push_back(User);
 		CopySockData(client_fd);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
-		send(client_fd, INTRO, _strlen(INTRO), 0);
+		//send(client_fd, INTRO, _strlen(INTRO), 0);
 		this->client_fds.push_back(client_fd);
 		this->client_count++;
 }
@@ -291,7 +291,10 @@ void	Server::KickClients(void) {
 */
 void	Server::Authenticate(int client_fd) {
 	char	*pass;
-	std::string hold_pass;
+	std::string hold_pass, temp_pass;
+    std::string hold_user;
+    std::stringstream hold_nick_temp;
+    std::string tmp[4];
 	size_t pos;
 	size_t index;
 
@@ -301,16 +304,38 @@ void	Server::Authenticate(int client_fd) {
 		while (pass != NULL) {
 			hold_pass = pass;
 			if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
-				hold_pass = hold_pass.substr(pos + 5, hold_pass.length());
-				break ;
+				temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
 			}
+            else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
+                hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                std::getline(hold_nick_temp, hold_user, ' ');
+            }
+            else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
+                hold_nick_temp.clear();
+                hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                for (size_t i = 0; i < 4; i++) {
+                    std::getline(hold_nick_temp, tmp[i], ' ');
+                }
+                clients.at(FindClient(client_fd)).SetName(tmp[0]);
+                clients.at(FindClient(client_fd)).SetHostname(tmp[1]);
+                clients.at(FindClient(client_fd)).SetServername(tmp[2]);
+                tmp[3].erase(tmp[3].find(":", 0), 1);
+                clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
+
+                std::cout << "Name: " << clients.at(FindClient(client_fd)).GetNameName() << std::endl;
+                std::cout << "HostName: " << clients.at(FindClient(client_fd)).GetHostname() << std::endl;
+                std::cout << "ServerName: " << clients.at(FindClient(client_fd)).GetServername() << std::endl;
+                std::cout << "RealName: " << clients.at(FindClient(client_fd)).GetRealname() << std::endl;
+                
+            }
 			pass = std::strtok(NULL, "\r\n");
 		}
-		if (hold_pass != password) {
+        clients.at(index).SetNick(hold_user);
+		clients.at(index).SetJustConnectedStatus(false);
+		if (temp_pass != password) {
 			DeleteClient(client_fd);
 			return ;
 		}
-		clients.at(index).SetJustConnectedStatus(false);
 	}
 }
 
@@ -335,9 +360,9 @@ void	Server::OnServerFdQueue(void) {
 			ReadClientFd(this->c_fd_queue[i].fd);
 			if (JustConnected(c_fd_queue[i].fd)) {
 				Authenticate(c_fd_queue[i].fd);
-				continue ;
-			}
-			Interpreter(c_fd_queue[i].fd);
+			} else {
+			    Interpreter(c_fd_queue[i].fd);
+            }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
@@ -374,39 +399,6 @@ void	Server::OnServerLoop(void) {
 
 /* ========== INTERPRETER SECTION =========== */
 
-// void	Server::PONG(int client_fd) {
-// 	std::string client_ip = inet_ntoa(clients.at(FindClient(client_fd)).client_sock_data.sin_addr);
-// 	send_buffer += "PONG " + client_ip + " ";
-	
-// 	for (size_t i = 0; i < command.begin()->second.size(); i++)
-// 		send_buffer += command.begin()->second.at(i);
-	
-// 	clients.at(client_fd).SetMessage(send_buffer);
-// }
-
-// void	Server::FindCommand(int client_fd) {
-// 	size_t	command_choice = 0;
-// 	std::string Commands[1] = { "PING" };
-// 	void (Server::*Command[1])(int) = { &Server::PONG };
-
-// 	std::map<std::string, std::vector<std::string> >::iterator it = this->command.begin();
-// 	while (it != this->command.end()) {
-// 		command_choice = 0;
-// 		std::cout << "Command: " + it->first + " Args:";
-// 		while (command_choice < Commands->size()) {
-// 			for (size_t i = 0; i < it->second.size(); i++)
-// 				std::cout << "[" + it->second.at(i) + "]" << "Size: " << it->second.size() << "Iter: " << i << std::endl;
-// 				 /* for printing data about the commands and it's args */
-// 			if (it->first == Commands[command_choice]) {
-// 				(this->*Command[command_choice])(client_fd);
-// 				return ;
-// 			}
-// 			command_choice++;
-// 			it++;
-// 		}
-// 	}
-// }
-
 /**
  * Prints the command data from the given Parse object.
  *
@@ -441,38 +433,39 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
     std::vector<string> args;
     std::vector<string> targets;
     
-    targets.clear();
-    char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
-    if (token)
-        Data.setCommand(token);
-    while (token) {
-        token = std::strtok(NULL, " ");
+    if (!str.empty()) {
+        char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
         if (token)
-            args.push_back(token);
-    }
-    std::vector<string>::iterator it = args.begin();
-    if (type == MSGINCLUDED) {
-        while (it != args.end()) {
-            size_t pos = it->find(":");
-            if (pos != std::string::npos) {
-                it->erase(pos, 1);
-                while (it != args.end())
-                    Accumulated_Message += *(it++);
-                Data.setMessage(Accumulated_Message);
-                break ;
-            } else
-                targets.push_back(*it);
-            it++;
+            Data.setCommand(token);
+        while (token) {
+            token = std::strtok(NULL, " ");
+            if (token)
+                args.push_back(token);
         }
-        Data.setTarget(targets);
-        args.clear();
-    } else if (type == MSGNOTINCLUDED) {
-        Data.setArgs(args);
-        Data.setMessage("");
-        Data.setTarget(targets);
-        Data.setType(MSGNOTINCLUDED);
+        std::vector<string>::iterator it = args.begin();
+        if (type == MSGINCLUDED) {
+            while (it != args.end()) {
+                size_t pos = it->find(":");
+                if (pos != std::string::npos) {
+                    it->erase(pos, 1);
+                    while (it != args.end())
+                        Accumulated_Message += *(it++);
+                    Data.setMessage(Accumulated_Message);
+                    break ;
+                } else
+                    targets.push_back(*it);
+                it++;
+            }
+            Data.setTarget(targets);
+            args.clear();
+        } else if (type == MSGNOTINCLUDED) {
+            Data.setArgs(args);
+            Data.setMessage("");
+            Data.setTarget(targets);
+            Data.setType(MSGNOTINCLUDED);
+        }
+        Data.setType(type);
     }
-    Data.setType(type);
     return Data;
 }
 
@@ -482,6 +475,8 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
 
 */
 void	Server::Interpreter(int client_fd) {
+    if (clients.at(FindClient(client_fd)).GetBuffer().empty())
+        return ;
     Parse Data(clients.at(FindClient(client_fd)));
     if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
         Data = CreateCommandData(client_fd, MSGINCLUDED);
@@ -489,6 +484,8 @@ void	Server::Interpreter(int client_fd) {
         Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
     }
     PrintCommandData(Data);
+    clients.at(FindClient(client_fd)).SetBuffer("");
+    clients.at(FindClient(client_fd)).SetMessage("");
     /*
         - Function to execute what's inside the Parse Data
     */

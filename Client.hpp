@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/30 13:55:12 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 16:11:29 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,18 @@ struct AddressDataClient {
 		int 				server_socket_fd;
 };
 
-class Client : public AddressDataClient
+struct ClientInfo {
+    protected:
+        std::string name;
+        std::string hostname;
+        std::string servername;
+        std::string realname;
+};
+
+class Client : public AddressDataClient, public ClientInfo
 {
 	private:
-		std::string	 	name;
+		std::string	 	nick;
 		int	 			socket_id;
 		//int  channel_id;
 		bool 			just_connected;
@@ -48,14 +56,25 @@ class Client : public AddressDataClient
 		Client &operator=(const Client& copy);
 		~Client();
 
+        const std::string& GetName() const;
 		int			getSockID() const;
 		bool		ShouldBeKicked() const;
 		void		SetKickStatus(bool status);
 		int			JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
-		void		SetName(const std::string& name);
+		void		SetNick(const std::string& name);
 		void		SetJustConnectedStatus(bool status);
 		const std::string&	GetMessageBuffer(void) const;
 		void		SetBuffer(const std::string& buffer);
 		void		SetMessage(const std::string& buffer);
+
+        void    SetName(const std::string &name);
+        void    SetHostname(const std::string &hostname);
+        void    SetServername(const std::string &servername);
+        void    SetRealname(const std::string &realname);
+
+        const std::string& GetNameName() const;
+        const std::string& GetHostname() const;
+        const std::string& GetServername() const;
+        const std::string& GetRealname() const;
 };
