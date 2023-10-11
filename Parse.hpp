@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parse.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/08 11:22:38 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 13:23:53 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 17:23:07 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,11 +40,12 @@ class Parse {
     void    setType(CommandType type);
     
     /* Getters */
-    const string &getCommand() const;
-    const std::vector<string> &getArgs() const;
-    const std::vector<string> &getTarget() const;
-    const string &getMessage() const;
-    CommandType      getType() const;
+    const string 				&getCommand() const;
+    const std::vector<string>	&getArgs() const;
+    const std::vector<string>	&getTarget() const;
+    const string 				&getMessage() const;
+	Client&						getClient() const;
+    CommandType					getType() const;
     
   private:
     Client& client;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 16:11:40 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 17:27:43 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,13 +42,25 @@ int Client::getSockID() const {
 	return (this->socket_id);
 }
 
+// std::string Client::getName() const {
+// 	return (this->name);
+// }
+
+// std::string Client::getNick() const {
+// 	return (this->nick);
+// }
+
 int Client::JustConnectedStatus() const {
 	return (this->just_connected);
 }
 
-void	Client::SetNick(const std::string& name) {
-	this->nick = name;
-}
+// void	Client::SetNick(const std::string& name) {
+// 	this->nick = name;
+// }
+
+// void	Client::SetNick(const std::string& nick) {
+// 	this->nick = nick;
+// }
 
 void	Client::SetJustConnectedStatus(bool status) {
 	this->just_connected = status;
@@ -71,7 +83,7 @@ const std::string&	Client::GetBuffer(void) const {
 	return (this->raw_data);
 }
 
-const std::string&	Client::GetMessageBuffer(void) const {
+std::string&	Client::GetMessageBuffer(void) {
 	return (this->send_buffer);
 }
 
@@ -113,4 +125,14 @@ const std::string& Client::GetServername() const {
 
 const std::string& Client::GetRealname() const {
     return this->realname;
+}
+
+bool		Client::operator==(const Client& c)
+{
+	return (this->socket_id == c.getSockID());
+}
+
+bool		Client::operator!=(const Client& c)
+{
+	return (this->socket_id != c.getSockID());
 }

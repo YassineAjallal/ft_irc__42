@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 16:11:29 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 17:27:02 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ class Client : public AddressDataClient, public ClientInfo
 		bool 			just_connected;
 		bool			should_be_kicked;
 		std::string		raw_data;
-		std::string		send_buffer;
+		std::string		send_buffer; // the message from server
 		
 		//bool			IsOperator;
 		
@@ -64,7 +64,7 @@ class Client : public AddressDataClient, public ClientInfo
 		const std::string&	GetBuffer(void) const;
 		void		SetNick(const std::string& name);
 		void		SetJustConnectedStatus(bool status);
-		const std::string&	GetMessageBuffer(void) const;
+		std::string&	GetMessageBuffer(void);
 		void		SetBuffer(const std::string& buffer);
 		void		SetMessage(const std::string& buffer);
 
@@ -77,4 +77,7 @@ class Client : public AddressDataClient, public ClientInfo
         const std::string& GetHostname() const;
         const std::string& GetServername() const;
         const std::string& GetRealname() const;
+
+		bool		operator==(const Client& c);
+		bool		operator!=(const Client& c);
 };

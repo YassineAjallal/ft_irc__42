@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parse.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/08 11:25:53 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 15:32:14 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/11 17:22:34 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,4 +77,9 @@ CommandType Parse::getType() const {
 
 void    Parse::setType(CommandType type) {
     this->type = type;
+}
+
+Client&				Parse::getClient() const
+{
+	return (this->client);
 }
