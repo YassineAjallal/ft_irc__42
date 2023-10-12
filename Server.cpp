@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 17:31:19 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/12 20:19:46 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,17 @@ Server::Server() : client_count(0)
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
 }
+
+// Server::Server(const std::string& aPort,const std::string& aPassword) :
+// client_count(0),
+// mPort(aPort),
+// mPassword(aPassword)
+// {
+// 	_bzero(&this->hints, sizeof(this->hints));
+// 	this->server_socket_fd = -1;
+// 	this->socket_data_size = sizeof(this->client_sock_data);
+// 	this->clients.clear();
+// }
 
 
 Server::Server(const Server& copy)
@@ -294,6 +305,7 @@ void	Server::Authenticate(int client_fd) {
 	index = FindClient(client_fd);
 
 	if (index >= 0) {
+		std::cout << "Buffer : " <<clients.at(index).GetBuffer() << std::endl;
 		pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
 		while (pass != NULL) {
 			hold_pass = pass;
@@ -316,10 +328,11 @@ void	Server::Authenticate(int client_fd) {
                 tmp[3].erase(tmp[3].find(":", 0), 1);
                 clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
 
-                std::cout << "Name: " << clients.at(FindClient(client_fd)).GetNameName() << std::endl;
-                std::cout << "HostName: " << clients.at(FindClient(client_fd)).GetHostname() << std::endl;
-                std::cout << "ServerName: " << clients.at(FindClient(client_fd)).GetServername() << std::endl;
-                std::cout << "RealName: " << clients.at(FindClient(client_fd)).GetRealname() << std::endl;
+                // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
+                // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
+                // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
+                // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
+				
                 
             }
 			pass = std::strtok(NULL, "\r\n");
@@ -479,7 +492,7 @@ void	Server::OnServerLoop(void) {
 void    Server::PrintCommandData(Parse &Data) {
     std::vector<string> tmp = Data.getTarget();
     std::vector<string>::iterator it = tmp.begin();
-
+	std::cout << "raw buffer : " << Data.getClient().GetBuffer() << std::endl;
     std::cout << "- Command: " + Data.getCommand() << std::endl;
     std::cout << "- Targets: " << std::endl;
     while (it != tmp.end())
@@ -549,9 +562,9 @@ void	Server::Interpreter(int client_fd) {
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	
-    PrintCommandData(*this->_data);
-	// std::cout << "-------" << this->_data->getCommand() << "-------" << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+    // PrintCommandData(*this->_data);
+	std::cout << this->_data->getClient();
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -568,7 +581,8 @@ void	Server::nick()
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-		client.SetName(nickname);
+		client.SetMessage(":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " NICK" + " :" + nickname + "\r\n");
+		client.SetNick(nickname);
 	}
 	
 }
@@ -590,7 +604,7 @@ void	Server::join()
 				channel_it->join(this->_data->getClient());
 			else
 				this->_data->getClient().SetMessage(
-							ERR_BADCHANNELKEY(this->_data->getClient().GetName(), channel_it->getName()));
+							ERR_BADCHANNELKEY(this->_data->getClient().getName(), channel_it->getName()));
 		}
 		else
 			channel_it->join(this->_data->getClient());
@@ -612,3 +626,7 @@ void	Server::kick()
 	// std::string	channel_name;
 }
 
+void	Server::who()
+{
+	
+}

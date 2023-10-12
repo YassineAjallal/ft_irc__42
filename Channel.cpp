@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/11 14:48:34 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/12 20:12:14 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,7 @@ std::string		Channel::getTopic() const
 	return (this->_topic);
 }
 
-void			Channel::setTopic(const std::string& t, std::string setterName)
+void			Channel::_set_topic(const std::string& t, std::string setterName)
 {
 	this->setTopicSetter(setterName);
 	this->setTopicTime(this->_get_time());
@@ -135,6 +135,7 @@ void			Channel::_remove_member(Client &client)
 
 void 			Channel::join(Client &client)
 {
+	std::string messageToSend;
 	if (this->_on_channel(client))
 		client.SetMessage(client.getName() + " " + this->_name + " :You are already in this channel\r\n");
 	else if (this->_invite_only && 
@@ -150,18 +151,13 @@ void 			Channel::join(Client &client)
 				this->_add_member(client, true);
 			else
 				this->_add_member(client, false);
-			// client.SetMessage(
-			// 	client.getName() + " :is joining the channel" + " &" + this->_name + "\r\n" +
-			// 	(this->_topic.empty() ? "" : RPL_TOPIC(client.getName(), this->_name, this->_topic) + RPL_TOPICWHOTIME(this->_topic_setter, this->_name, this->_topic, this->_time_topic_is_set)) +
-			// 	this->show_users(client) +
-			// 	RPL_ENDOFNAMES(client.getName(), this->_name)
-			// );
-			// client.SetMessage(client.getName() + " :is joining the channel" + " &" + this->_name + "\r\n");
-			// client.SetMessage(this->_topic.empty() ? "" : RPL_TOPIC(client.getName(), this->_name, this->_topic) + RPL_TOPICWHOTIME(this->_topic_setter, this->_name, this->_topic, this->_time_topic_is_set));
-			// client.SetMessage(this->show_users(client));
-			// client.SetMessage(RPL_ENDOFNAMES(client.getName(), this->_name));
-			client.SetMessage(client.getName() + ":" + client.getName() + "!~" + client.getNick() + "@localhost JOIN " + this->_name + " * :realname\r\n");
-			// this->sendToAll(client, client.getName() + " :is joining the channel " + this->_name + "\r\n");
+	
+			messageToSend += ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
+			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPIC(client.getNick(), this->_name, this->_topic) ));
+			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPICWHOTIME(client.getNick(), this->_name, this->_topic_setter, this->_time_topic_is_set) ));
+			messageToSend += ":" + client.getServername() + " " + this->show_users(client);
+			messageToSend += ":" + client.getServername() + " " + RPL_ENDOFNAMES(client.getNick(), this->_name);
+			client.SetMessage(messageToSend);
 		}
 	}
 }
@@ -232,7 +228,7 @@ void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::str
 	
 }
 
-void		Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
+void			Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
 {
 	std::vector<Member>::iterator member_it;
 	std::vector<Member>::iterator client_it;
@@ -293,26 +289,40 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 			client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
 		else
 		{
-			this->setTopic(topic, client.getName());
+			this->_set_topic(topic, client.getName());
 			client.SetMessage("TOPIC " + this->_topic + "\r\n");
 			this->sendToAll(client, "TOPIC " + this->_topic + "\r\n");
 		}
 	}
 	
 }
-
+std::string		Channel::who(Client &client)
+{
+	std::string who_reply;
+	for (size_t i = 0; i < this->_members.size(); i++)
+	{
+		who_reply += RPL_WHOREPLY(client.getNick(), 
+								  this->_name,
+								  this->_members[i].getClient()->getName(), 
+								  this->_members[i].getClient()->getHostname(), 
+								  this->_members[i].getClient()->getServername(), 
+								  this->_members[i].getClient()->getNick(), 
+								  this->_members[i].getClient()->getRealname());
+	}
+	who_reply += RPL_ENDOFWHO(client.getNick(), this->_name);
+	return (who_reply);
+}
 std::string		Channel::show_users(Client& client) const
 {
 	std::string users;
-	users += client.getName() + " :";
+	users += "353 " + client.getNick() + " = " + this->_name + " :";
 	for(size_t i = 0; i < this->_members.size(); i++)
-		users += RPL_NAMREPLY(this->_members_prefixes(this->_members[i]),
-								this->_members[i].getClient()->getName());
+		users += this->_members[i].getClient()->getNick() + "!~" + this->_members[i].getClient()->getName() + "@" + this->_members[i].getClient()->getHostname() + " ";
 	users += "\r\n";
 	return (users);
 }
 
-std::string			Channel::_members_prefixes(const Member& member) const
+std::string		Channel::_members_prefixes(const Member& member) const
 {
 	std::string prefixes;
 	prefixes += member.getFounderPrev() ? "~" : "";

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 17:25:07 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/12 16:13:58 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,6 +73,7 @@ class Server : public AddressData
 {
 	public:
 		Server();
+		// Server(const std::string& aPort,const std::string& aPassword);
 		Server(const Server& copy);
 		Server(std::string port, std::string pass);
 		Server &operator=(const Server& copy);
@@ -90,6 +91,10 @@ class Server : public AddressData
 		std::string 				send_buffer;
 		Parse*						_data;
 		std::list<Channel>			_channels;
+
+		//
+		// const std::string&	mPort;
+		// const std::string&	mPassword;
 		// std::map<std::string, std::vector<std::string> > command;
 
 		/* =============Server Functions============ */
@@ -119,8 +124,8 @@ class Server : public AddressData
 		// void		FindCommand(int client_fd);
 
 		// commands
+		void		who();
 		void		nick();
 		void		join();
 		void		kick();
-		
 };

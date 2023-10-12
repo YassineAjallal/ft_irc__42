@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 17:27:43 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/12 12:38:27 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,7 +91,7 @@ void	Client::SetMessage(const std::string& buffer) {
 	send_buffer = buffer;
 }
 
-const std::string& Client::GetName() const {
+const std::string& Client::getNick() const {
     return (this->nick);
 }
 
@@ -111,19 +111,19 @@ void    Client::SetRealname(const std::string &realname) {
     this->realname = realname;
 }
 
-const std::string& Client::GetNameName() const {
+const std::string& Client::getName() const {
     return this->name;
 }
 
-const std::string& Client::GetHostname() const {
+const std::string& Client::getHostname() const {
     return this->hostname;
 }
 
-const std::string& Client::GetServername() const {
+const std::string& Client::getServername() const {
     return this->servername;
 }
 
-const std::string& Client::GetRealname() const {
+const std::string& Client::getRealname() const {
     return this->realname;
 }
 
@@ -135,4 +135,19 @@ bool		Client::operator==(const Client& c)
 bool		Client::operator!=(const Client& c)
 {
 	return (this->socket_id != c.getSockID());
+}
+
+void		Client::SetNick(const std::string& name)
+{
+	this->nick = name;
+}
+
+std::ostream& operator<<(std::ostream& os, Client &client)
+{
+	os << "NickName : " << client.getNick() << "\n";
+	os << "Name : "  << client.getName() << "\n";
+	os << "Hostname : " << client.getHostname() << "\n";
+	os << "Server Name : " << client.getServername() << "\n";
+	os << "RealName : " << client.getRealname() << "\n";
+	return (os);
 }
