@@ -225,19 +225,15 @@ void	Server::ReadClientFd(int client_fd) {
 	char	buf[MAX_IRC_MSGLEN];
 
 	_bzero(buf, MAX_IRC_MSGLEN);
-	int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, MSG_PEEK);
-	if (rb > 0) {
-		while (SRH)
-		{
-			rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
-			if (rb <= 0) {
-				break ;
-			} else {
-				buf[rb] = 0;
-				raw_data += buf;
-			}
+	int rb = 0;
+	while (recv(client_fd, buf, sizeof(buf), MSG_PEEK) > 0) {
+		rb = recv(client_fd, buf, sizeof(buf), 0);
+		if (rb <= 0)
+			break ;
+		else {
+			buf[rb] = 0;
+			raw_data += buf;
 		}
-		clients.at(FindClient(client_fd)).SetBuffer(raw_data);
 	}
 }
 
@@ -296,7 +292,7 @@ void	Server::Authenticate(int client_fd) {
     std::stringstream hold_nick_temp;
     std::string tmp[4];
 	size_t pos;
-	size_t index;
+	int index;
 
 	index = FindClient(client_fd);
 	if (index >= 0) {
