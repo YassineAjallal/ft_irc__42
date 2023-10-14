@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/14 13:13:42 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/14 16:32:32 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,7 @@ bool	Server::GenerateServerData(const std::string &port) {
 	this->hints.ai_family = AF_INET;
 	this->hints.ai_socktype = SOCK_STREAM;
 	this->hints.ai_flags = AI_PASSIVE;
+    this->hints.ai_protocol = IPPROTO_TCP;
 	if (getaddrinfo(NULL, port.c_str(), &this->hints, &this->res)) {
 		std::cerr << "Error: Couldn't acquire address info!" << std::endl;
 		return 1;
@@ -245,8 +246,9 @@ void Server::ReadClientFd(int client_fd) {
 */
 void	Server::SendClientMessage(int client_fd) {
 	if (!clients.at(FindClient(client_fd)).GetMessageBuffer().empty()) {
-		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length() - 1, 0);
+		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length(), 0);
 	}
+    clients.at(FindClient(client_fd)).SetMessage("");
 	send_buffer.clear();
 }
 
@@ -350,12 +352,22 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
-	for (size_t i = 1; i < this->client_count + 1; i++) {
+	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
+            if (this->c_fd_queue[i].fd == this->server_socket_fd) {
+                int new_client_fd = -1;
+                new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	            if (new_client_fd > 0) {
+	            	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	            	InsertClient(new_client_fd);
+	            	std::cout << "Total Clients: " << clients.size() << std::endl;
+                    continue;
+	            }
+            }
 			ReadClientFd(this->c_fd_queue[i].fd);
 			if (JustConnected(c_fd_queue[i].fd)) {
 				Authenticate(c_fd_queue[i].fd);
@@ -380,15 +392,8 @@ void	Server::OnServerFdQueue(void) {
 */
 void	Server::OnServerLoop(void) {
 	while (SRH) {
-	int 	new_client_fd = -1;
-	int 	poll_num = poll(&this->c_fd_queue[0], this->client_count + 1, 0);
-	
-	new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	if (new_client_fd > 0) {
-		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-		InsertClient(new_client_fd);
-		std::cout << "Total Clients: " << clients.size() << std::endl;
-	}
+	int 	poll_num = poll(&this->c_fd_queue[0], this->c_fd_queue.size(), 0);
+
 	if (poll_num > 0)
 		OnServerFdQueue();
 	}
