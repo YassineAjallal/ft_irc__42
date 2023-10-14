@@ -226,13 +226,22 @@ void	Server::ReadClientFd(int client_fd) {
 
 	_bzero(buf, MAX_IRC_MSGLEN);
 	int rb = 0;
-	while (recv(client_fd, buf, sizeof(buf), MSG_PEEK) > 0) {
-		rb = recv(client_fd, buf, sizeof(buf), 0);
-		if (rb <= 0)
+	while (SRH)
+	{
+		rb = recv(client_fd, buf, MAX_IRC_MSGLEN, MSG_PEEK);
+		// std::cout << "PEEK BYTES: " << rb << std::endl;
+		if (rb > 0) {
+			rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
+			// std::cout << "READ BYTES: " << rb << std::endl;
+			if (rb <= 0) {
+				break ;
+			} else {
+				buf[rb] = 0;
+				raw_data += buf;
+			}
+		} else {
+			clients.at(FindClient(client_fd)).SetBuffer(raw_data);
 			break ;
-		else {
-			buf[rb] = 0;
-			raw_data += buf;
 		}
 	}
 }
@@ -329,6 +338,7 @@ void	Server::Authenticate(int client_fd) {
         clients.at(index).SetNick(hold_user);
 		clients.at(index).SetJustConnectedStatus(false);
 		if (temp_pass != password) {
+			std::cout << "PASS " + temp_pass << std::endl;
 			DeleteClient(client_fd);
 			return ;
 		}
