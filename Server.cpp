@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 16:55:42 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/14 13:13:42 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,6 +195,7 @@ void		Server::CopySockData(int client_fd) {
 void	Server::InsertClient(int client_fd) {
 		Client User(client_fd, 1);
 
+        fcntl(client_fd, F_SETFL, O_NONBLOCK);
 		this->clients.push_back(User);
 		CopySockData(client_fd);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
@@ -221,29 +222,21 @@ int	Server::FindClient(int client_fd) {
  	- Reads the input given by a certain client and stores it in a special buffer accessible only
       for that client.
 */
-void	Server::ReadClientFd(int client_fd) {
-	char	buf[MAX_IRC_MSGLEN];
-
-	_bzero(buf, MAX_IRC_MSGLEN);
-	int rb = 0;
-	while (SRH)
-	{
-		rb = recv(client_fd, buf, MAX_IRC_MSGLEN, MSG_PEEK);
-		// std::cout << "PEEK BYTES: " << rb << std::endl;
-		if (rb > 0) {
-			rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
-			// std::cout << "READ BYTES: " << rb << std::endl;
-			if (rb <= 0) {
-				break ;
-			} else {
-				buf[rb] = 0;
-				raw_data += buf;
-			}
-		} else {
-			clients.at(FindClient(client_fd)).SetBuffer(raw_data);
-			break ;
-		}
-	}
+void Server::ReadClientFd(int client_fd) {
+    char buf[MAX_IRC_MSGLEN];
+    _bzero(buf, MAX_IRC_MSGLEN);
+    while (SRH) {
+        int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
+        if (rb > 0) {
+            buf[rb] = 0;
+            raw_data += buf;
+        } else if (rb <= 0) {
+            clients.at(FindClient(client_fd)).SetBuffer(raw_data);
+            std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
+            raw_data.clear();
+            break ;
+        }
+    }
 }
 
 /*
@@ -392,7 +385,6 @@ void	Server::OnServerLoop(void) {
 	
 	new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
 	if (new_client_fd > 0) {
-		fcntl(new_client_fd, F_SETFL, O_NONBLOCK);
 		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 		InsertClient(new_client_fd);
 		std::cout << "Total Clients: " << clients.size() << std::endl;
@@ -489,7 +481,7 @@ void	Server::Interpreter(int client_fd) {
     } else {
         Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
     }
-    PrintCommandData(Data);
+    //PrintCommandData(Data);
     clients.at(FindClient(client_fd)).SetBuffer("");
     clients.at(FindClient(client_fd)).SetMessage("");
     /*
