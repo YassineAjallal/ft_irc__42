@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/12 20:12:14 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/14 15:08:27 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,6 +114,7 @@ bool			Channel::operator!=(const std::string& c)
 
 bool			Channel::_on_channel(Client &client)
 {
+	// std::cout << ((std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end()) ? "Found":"Not Found") << std::endl;
 	return (std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end());
 }
 
@@ -155,9 +156,11 @@ void 			Channel::join(Client &client)
 			messageToSend += ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
 			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPIC(client.getNick(), this->_name, this->_topic) ));
 			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPICWHOTIME(client.getNick(), this->_name, this->_topic_setter, this->_time_topic_is_set) ));
-			messageToSend += ":" + client.getServername() + " " + this->show_users(client);
+			messageToSend += ":" + client.getServername() + " " + this->showUsers(client);
 			messageToSend += ":" + client.getServername() + " " + RPL_ENDOFNAMES(client.getNick(), this->_name);
 			client.SetMessage(messageToSend);
+			messageToSend = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
+			this->sendToAll(client, messageToSend);
 		}
 	}
 }
@@ -207,7 +210,7 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
+void			Channel::_channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
 {
 	std::vector<Member>::iterator client_it;
 
@@ -228,7 +231,7 @@ void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::str
 	
 }
 
-void			Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
+void			Channel::_member_mode(Client &client, bool add_remove, std::string mode, Client& member)
 {
 	std::vector<Member>::iterator member_it;
 	std::vector<Member>::iterator client_it;
@@ -296,11 +299,12 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 	}
 	
 }
-std::string		Channel::who(Client &client)
+void			Channel::who(Client &client)
 {
 	std::string who_reply;
 	for (size_t i = 0; i < this->_members.size(); i++)
 	{
+		who_reply += ":" + client.getServername() + " ";
 		who_reply += RPL_WHOREPLY(client.getNick(), 
 								  this->_name,
 								  this->_members[i].getClient()->getName(), 
@@ -309,10 +313,10 @@ std::string		Channel::who(Client &client)
 								  this->_members[i].getClient()->getNick(), 
 								  this->_members[i].getClient()->getRealname());
 	}
-	who_reply += RPL_ENDOFWHO(client.getNick(), this->_name);
-	return (who_reply);
+	who_reply += ":" + client.getServername() + " " + RPL_ENDOFWHO(client.getNick(), this->_name);
+	client.SetMessage(who_reply);
 }
-std::string		Channel::show_users(Client& client) const
+std::string		Channel::showUsers(Client& client) const
 {
 	std::string users;
 	users += "353 " + client.getNick() + " = " + this->_name + " :";

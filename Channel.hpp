@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/12 20:12:19 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/14 09:45:15 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,8 @@
 #define RPL_INVITING(client, nick, channel) 									("341 " + client + " " + nick + " " + channel + "\r\n")
 
 
-#define RPL_ENDOFWHO(client, mask) 												("315 " + client, + " " + mask + " :End of WHO list")
-#define RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H :0 " + realname)
+#define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list\r\n")
+#define RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H 0 :" + realname + "\r\n")
 
 
 // numeric 
@@ -56,31 +56,31 @@ class Channel {
 		Channel(const std::string& name, const std::string& password);
 		~Channel();
 		
+		// getters
 		std::string 		getName() const;
 		std::string 		getPassword() const;
-		void				setPassword(const std::string& new_password, bool has_password);
-		bool				getHasPassword() const;
-		void				setHasPassword(bool b);
-		size_t				getSize() const;
-		void				setSize(const int& s);
 		std::string			getTopic() const;
+		bool				getHasPassword() const;
+		bool				getInviteOnly() const;
+		size_t				getSize() const;
+
+		// setters
+		void				setPassword(const std::string& new_password, bool has_password);
+		void				setHasPassword(bool b);
+		void				setSize(const int& s);
 		void				setTopicSetter(const std::string& ts);
 		void				setTopicTime(const std::string& tt);
-		bool				getInviteOnly() const;
 		void				setInviteOnly(bool b);
 
 		void 				join(Client &client);
 		void 				part(Client &client, std::string reason);
 		void				kick(Client &client, Client &kicked, std::string reason);
-		void				channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
-		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
 		void				topic(Client &client, bool topic_exist, std::string topic);
-		std::string			who(Client &client); // execute when a client send " WHO #channel_name "
-		void				name();
-		void				list();
+		void				who(Client &client); // execute when a client send " WHO #channel_name "
+		void		 		mode(Client &client);
 		void				invite(Client& client, Client &invited);
 		void				sendToAll(Client &client, std::string msg);
-		std::string			show_users(Client& client) const;
+		std::string			showUsers(Client& client) const;
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);
@@ -103,6 +103,8 @@ class Channel {
 		void				_remove_member(Client &client);
 		std::string			_get_time();
 		std::string			_members_prefixes(const Member& member) const;
+		void				_member_mode(Client &client, bool add_remove, std::string mode, Client& member);
+		void				_channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
 };
 
 #endif // Channel_HPP

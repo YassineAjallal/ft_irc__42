@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/12 16:13:58 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/14 12:47:10 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,6 +91,7 @@ class Server : public AddressData
 		std::string 				send_buffer;
 		Parse*						_data;
 		std::list<Channel>			_channels;
+		void						_setChannels();
 
 		//
 		// const std::string&	mPort;
@@ -128,4 +129,5 @@ class Server : public AddressData
 		void		nick();
 		void		join();
 		void		kick();
+		void		mode();
 };

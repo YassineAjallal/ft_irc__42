@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/12 20:19:46 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/14 14:01:06 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,18 +21,8 @@ Server::Server() : client_count(0)
 	this->server_socket_fd = -1;
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
+	this->_setChannels();
 }
-
-// Server::Server(const std::string& aPort,const std::string& aPassword) :
-// client_count(0),
-// mPort(aPort),
-// mPassword(aPassword)
-// {
-// 	_bzero(&this->hints, sizeof(this->hints));
-// 	this->server_socket_fd = -1;
-// 	this->socket_data_size = sizeof(this->client_sock_data);
-// 	this->clients.clear();
-// }
 
 
 Server::Server(const Server& copy)
@@ -43,11 +33,13 @@ Server::Server(const Server& copy)
 	this->c_fd_queue = copy.c_fd_queue;
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
+	this->_setChannels();
 }
 
 Server::Server(std::string port, std::string pass) {
 	Server();
 	CreateServer(port, pass);
+	this->_setChannels();
 }
 
 Server &Server::operator=(const Server& copy)
@@ -206,12 +198,13 @@ void		Server::CopySockData(int client_fd) {
 void	Server::InsertClient(int client_fd) {
 		Client User(client_fd, 1);
 
+        fcntl(client_fd, F_SETFL, O_NONBLOCK);
 		this->clients.push_back(User);
 		CopySockData(client_fd);
 		InsertSocketFileDescriptorToPollQueue(client_fd);
 		//send(client_fd, INTRO, _strlen(INTRO), 0);
 		this->client_fds.push_back(client_fd);
-		this->client_count = this->c_fd_queue.size() - 1;
+		this->client_count++;
 }
 
 /*
@@ -232,26 +225,21 @@ int	Server::FindClient(int client_fd) {
  	- Reads the input given by a certain client and stores it in a special buffer accessible only
       for that client.
 */
-void	Server::ReadClientFd(int client_fd) {
-	char	buf[MAX_IRC_MSGLEN];
-
-	_bzero(buf, MAX_IRC_MSGLEN);
-	int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, MSG_PEEK);
-	if (rb > 0) {
-		while (SRH)
-		{
-			rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
-			if (rb <= 0) {
-				break ;
-			} else {
-				buf[rb] = 0;
-				raw_data += buf;
-			}
-		}
-		clients.at(FindClient(client_fd)).SetBuffer(raw_data);
-		
-		// std::cout << "FD ID:" << client_fd << "\nMessage:" <<  clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
-	}
+void Server::ReadClientFd(int client_fd) {
+    char buf[MAX_IRC_MSGLEN];
+    _bzero(buf, MAX_IRC_MSGLEN);
+    while (SRH) {
+        int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
+        if (rb > 0) {
+            buf[rb] = 0;
+            raw_data += buf;
+        } else if (rb <= 0) {
+            clients.at(FindClient(client_fd)).SetBuffer(raw_data);
+            std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
+            raw_data.clear();
+            break ;
+        }
+    }
 }
 
 /*
@@ -270,7 +258,17 @@ void	Server::SendClientMessage(int client_fd) {
 	- Checks whether the client has just connected.
 */
 bool	Server::JustConnected(int socketfd) {
-	return clients.at(FindClient(socketfd)).JustConnectedStatus();
+	size_t i = 0;
+
+	if (!this->clients.empty()) {
+		while (i < this->clients.size()) {
+			if (socketfd == clients[i].getSockID()) {
+				return clients[i].JustConnectedStatus();
+			}
+			i++;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -300,12 +298,10 @@ void	Server::Authenticate(int client_fd) {
     std::stringstream hold_nick_temp;
     std::string tmp[4];
 	size_t pos;
-	size_t index;
+	int index;
 
 	index = FindClient(client_fd);
-
 	if (index >= 0) {
-		std::cout << "Buffer : " <<clients.at(index).GetBuffer() << std::endl;
 		pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
 		while (pass != NULL) {
 			hold_pass = pass;
@@ -332,7 +328,6 @@ void	Server::Authenticate(int client_fd) {
                 // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
                 // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
                 // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
-				
                 
             }
 			pass = std::strtok(NULL, "\r\n");
@@ -340,11 +335,10 @@ void	Server::Authenticate(int client_fd) {
         clients.at(index).SetNick(hold_user);
 		clients.at(index).SetJustConnectedStatus(false);
 		if (temp_pass != password) {
+			std::cout << "PASS " + temp_pass << std::endl;
 			DeleteClient(client_fd);
 			return ;
 		}
-		clients.at(index).SetJustConnectedStatus(false);		
-		
 	}
 }
 
@@ -360,7 +354,7 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
-	for (size_t i = 1; i < this->c_fd_queue.size(); i++) {
+	for (size_t i = 1; i < this->client_count + 1; i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 			DeleteClient(c_fd_queue[i].fd);
@@ -369,12 +363,9 @@ void	Server::OnServerFdQueue(void) {
 			ReadClientFd(this->c_fd_queue[i].fd);
 			if (JustConnected(c_fd_queue[i].fd)) {
 				Authenticate(c_fd_queue[i].fd);
-				raw_data.clear();
-				send_buffer.clear();
-				continue ;
 			} else {
-				Interpreter(c_fd_queue[i].fd);
-			}
+			    Interpreter(c_fd_queue[i].fd);
+            }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
@@ -398,7 +389,6 @@ void	Server::OnServerLoop(void) {
 	
 	new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
 	if (new_client_fd > 0) {
-		fcntl(new_client_fd, F_SETFL, O_NONBLOCK);
 		std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
 		InsertClient(new_client_fd);
 		std::cout << "Total Clients: " << clients.size() << std::endl;
@@ -420,65 +410,6 @@ void	Server::OnServerLoop(void) {
  *
  * @throws None
  */
-// void    Server::PrintCommandData(Parse __unused &Data) {
-//     std::vector<string> tmp = this->_data->getTarget();
-//     std::vector<string>::iterator it = tmp.begin();
-
-//     std::cout << "- Command: " + this->_data->getCommand() << std::endl;
-//     std::cout << "- Targets: " << std::endl;
-//     while (it != tmp.end())
-//         std::cout << "      - " + *(it++) << std::endl;
-//     std::cout << "- Args: " << std::endl;
-//     tmp = this->_data->getArgs();
-//     it = tmp.begin();
-//     while (it != tmp.end())
-//         std::cout << "      - " + *(it++) << std::endl;
-//     std::cout << "- Message: " + this->_data->getMessage() << std::endl;
-//     std::cout << "- Type: " << (this->_data->getType() ? "MSGINCLUDED" : "MSGNOTINCLUDED") << std::endl;
-//     std::cout << std::endl;
-// }
-
-// void   Server::CreateCommandData(int client_fd, CommandType type) {
-//     this->_data = new Parse(clients.at(FindClient(client_fd)));
-//     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
-//     std::string Accumulated_Message;
-//     std::vector<string> args;
-//     std::vector<string> targets;
-    
-//     if (!str.empty()) {
-//         char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
-//         if (token)
-//             this->_data->setCommand(token);
-//         while (token) {
-//             token = std::strtok(NULL, " ");
-//             if (token)
-//                 args.push_back(token);
-//         }
-//         std::vector<string>::iterator it = args.begin();
-//         if (type == MSGINCLUDED) {
-//             while (it != args.end()) {
-//                 size_t pos = it->find(":");
-//                 if (pos != std::string::npos) {
-//                     it->erase(pos, 1);
-//                     while (it != args.end())
-//                         Accumulated_Message += *(it++);
-//                     this->_data->setMessage(Accumulated_Message);
-//                     break ;
-//                 } else
-//                     targets.push_back(*it);
-//                 it++;
-//             }
-//             this->_data->setTarget(targets);
-//             args.clear();
-//         } else if (type == MSGNOTINCLUDED) {
-//             this->_data->setArgs(args);
-//             this->_data->setMessage("");
-//             this->_data->setTarget(targets);
-//             this->_data->setType(MSGNOTINCLUDED);
-//         }
-//         this->_data->setType(type);
-//     }
-// }
 
 /**
  * Prints the command data from the given Parse object.
@@ -490,8 +421,8 @@ void	Server::OnServerLoop(void) {
  * @throws None
  */
 void    Server::PrintCommandData(Parse &Data) {
-    std::vector<string> tmp = Data.getTarget();
-    std::vector<string>::iterator it = tmp.begin();
+    std::vector<std::string> tmp = Data.getTarget();
+    std::vector<std::string>::iterator it = tmp.begin();
 	std::cout << "raw buffer : " << Data.getClient().GetBuffer() << std::endl;
     std::cout << "- Command: " + Data.getCommand() << std::endl;
     std::cout << "- Targets: " << std::endl;
@@ -512,8 +443,8 @@ void   Server::CreateCommandData(int client_fd, CommandType type) {
     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
 	str.replace(str.find("\r\n"), 2, "");
     std::string Accumulated_Message;
-    std::vector<string> args;
-    std::vector<string> targets;
+    std::vector<std::string> args;
+    std::vector<std::string> targets;
     
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
@@ -524,7 +455,7 @@ void   Server::CreateCommandData(int client_fd, CommandType type) {
         if (token)
             args.push_back(token);
     }
-    std::vector<string>::iterator it = args.begin();
+    std::vector<std::string>::iterator it = args.begin();
     if (type == MSGINCLUDED) {
         while (it != args.end()) {
             size_t pos = it->find(":");
@@ -555,23 +486,22 @@ void   Server::CreateCommandData(int client_fd, CommandType type) {
 	to parse more 
 
 */
-void	Server::Interpreter(int client_fd) {
+void	Server::Interpreter(int client_fd) 
+{
     this->_data = new Parse(clients.at(FindClient(client_fd)));
 	if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
 		CreateCommandData(client_fd, MSGINCLUDED);
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	std::cout << "---------------------------------" << std::endl;
-    // PrintCommandData(*this->_data);
-	std::cout << this->_data->getClient();
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
 		this->join();
-    /*
-        - Function to execute what's inside the Parse Data
-    */
+	else if (this->_data->getCommand() == "WHO")
+		this->who();
+	else if (this->_data->getCommand() == "MODE")
+		this->mode();
 }
 
 void	Server::nick()
@@ -584,7 +514,6 @@ void	Server::nick()
 		client.SetMessage(":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " NICK" + " :" + nickname + "\r\n");
 		client.SetNick(nickname);
 	}
-	
 }
 
 void	Server::join()
@@ -592,6 +521,7 @@ void	Server::join()
 	std::string 					channel_name;
 	std::string 					channel_password;						
 	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
 
 	channel_name = this->_data->getArgs().at(0);
 	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "");
@@ -601,24 +531,24 @@ void	Server::join()
 		if (channel_it->getHasPassword())
 		{
 			if (channel_it->getPassword() == channel_password)
-				channel_it->join(this->_data->getClient());
+				channel_it->join(client);
 			else
-				this->_data->getClient().SetMessage(
-							ERR_BADCHANNELKEY(this->_data->getClient().getName(), channel_it->getName()));
+				client.SetMessage(":" + client.getServername() + " " + ERR_BADCHANNELKEY(client.getName(), channel_it->getName()));
 		}
 		else
-			channel_it->join(this->_data->getClient());
+			channel_it->join(client);
 	}
 	else
-	{
-		this->_channels.push_back(
-									this->_data->getArgs().size() == 2
-									? Channel(channel_name, channel_password)
-									: Channel(channel_name));
-		channel_it = this->_channels.begin();
-		std::advance(channel_it, this->_channels.size() - 1);
-		channel_it->join(this->_data->getClient());
-	}
+		client.SetMessage(":" + client.getServername() + " " + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+}
+
+void	Server::_setChannels()
+{
+	this->_channels.push_back(Channel("#yajallal", "yajallal"));
+	this->_channels.push_back(Channel("#mkhairou", "mkhairou"));
+	this->_channels.push_back(Channel("#hmeftah", "hmeftah"));
+	this->_channels.push_back(Channel("#random"));
+	this->_channels.push_back(Channel("#general"));
 }
 
 void	Server::kick()
@@ -628,5 +558,34 @@ void	Server::kick()
 
 void	Server::who()
 {
-	
+	const std::string&				first_arg_type = this->_data->getArgs().at(0);
+	std::list<Channel>::iterator	channel_it;
+	std::string						message_to_send;
+	Client&							client = this->_data->getClient();
+	if (first_arg_type.at(0) == '#')
+	{
+		channel_it = std::find(this->_channels.begin(), this->_channels.end(), first_arg_type);
+		if (channel_it != this->_channels.end())
+			channel_it->who(client);
+		else
+			client.SetMessage(":" + client.getServername() + " " + RPL_ENDOFWHO(client.getNick(), first_arg_type));
+	}
+}
+
+void	Server::mode()
+{
+	// this->PrintCommandData(*(this->_data));   
+	// Client&							client = this->_data->getClient();
+	// std::string&					target_name = this->_data->getArgs().at(0);
+	// std::list<Channel>::iterator	channel_it;
+	// if (target_name.at(0) == '#')
+	// {
+	// 	channel_it = std::find(this->_channels.begin(), this->_channels.end(), target_name);
+	// 	if (channel_it == this->_channels.end())
+	// 		client.SetMessage(":" + client.getServername() + " " + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
+	// 	else
+	// 	{
+			
+	// 	}
+	// }
 }
