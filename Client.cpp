@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 16:11:40 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 13:05:46 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,8 @@ Client::~Client()  {
 }
 
 Client::Client(int socket_id, bool just_connected) {
+    Client();
+    this->user_connected_date = time(NULL);
 	this->socket_id = socket_id;
 	this->just_connected = just_connected;
 	
@@ -113,4 +115,8 @@ const std::string& Client::GetServername() const {
 
 const std::string& Client::GetRealname() const {
     return this->realname;
+}
+
+unsigned long Client::GetConnectedDate() const {
+    return (this->user_connected_date);
 }

@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/14 16:32:32 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 13:15:08 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,7 +88,7 @@ bool	Server::CreateServer(const std::string &port, const std::string &pass) {
 		return 1;
 	
 	this->password = pass;
-	this->server_socket_fd = socket(this->hints.ai_family, this->hints.ai_socktype, this->hints.ai_protocol);
+	this->server_socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->server_socket_fd == -1) {
 		std::cerr << "Error: Socket creation has failed!" << std::endl;
 		return 1;
@@ -282,6 +282,24 @@ void	Server::KickClients(void) {
 		it++;
 	}
 }
+/*
+    -   Checks whether the data is valid or not (ending with "\\r\\n")
+*/
+bool    Server::CheckDataValidity(void) {
+    if (!raw_data.empty()) {
+        for (size_t i = 0; i < raw_data.size(); i++) {
+            if (raw_data.at(i) == '\r' && raw_data.at(i + 1) == '\n' && raw_data.at(i + 2) == '\0')
+                return true;
+        }
+    }
+    return false;
+}
+
+ bool   Server::CheckLoginTimeout(int client_fd) {
+    if (time(NULL) - clients.at(FindClient(client_fd)).GetConnectedDate() > MAX_TIMEOUT_DURATION)
+        return true;
+    return false;
+ }
 
 /*
  - Authenticates the client.
@@ -331,12 +349,12 @@ void	Server::Authenticate(int client_fd) {
 			pass = std::strtok(NULL, "\r\n");
 		}
         clients.at(index).SetNick(hold_user);
-		clients.at(index).SetJustConnectedStatus(false);
-		if (temp_pass != password) {
+		if (temp_pass != password || CheckLoginTimeout(client_fd)) {
 			std::cout << "PASS " + temp_pass << std::endl;
 			DeleteClient(client_fd);
 			return ;
 		}
+		clients.at(index).SetJustConnectedStatus(false);
 	}
 }
 
@@ -360,19 +378,24 @@ void	Server::OnServerFdQueue(void) {
 		else if (this->c_fd_queue[i].revents & POLLIN) {
             if (this->c_fd_queue[i].fd == this->server_socket_fd) {
                 int new_client_fd = -1;
-                new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	            if (new_client_fd > 0) {
-	            	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	            	InsertClient(new_client_fd);
-	            	std::cout << "Total Clients: " << clients.size() << std::endl;
-                    continue;
-	            }
+                do {
+                    new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	                if (new_client_fd > 0) {
+	                	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	                	InsertClient(new_client_fd);
+	                	std::cout << "Total Clients: " << clients.size() << std::endl;
+	                }
+                }
+                while (new_client_fd > 0);
+                continue;
             }
 			ReadClientFd(this->c_fd_queue[i].fd);
-			if (JustConnected(c_fd_queue[i].fd)) {
-				Authenticate(c_fd_queue[i].fd);
-			} else {
-			    Interpreter(c_fd_queue[i].fd);
+            if (CheckDataValidity()) {
+			    if (JustConnected(c_fd_queue[i].fd) && !raw_data.empty()) {
+			    	Authenticate(c_fd_queue[i].fd);
+			    } else {
+			        Interpreter(c_fd_queue[i].fd);
+                }
             }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {

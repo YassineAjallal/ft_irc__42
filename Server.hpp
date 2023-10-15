@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 11:06:15 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 13:12:51 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
 #define MAX_IRC_MSGLEN 4096
+#define MAX_TIMEOUT_DURATION 2
 #define SRH 1
 
 #define INTRO "Welcome to:\n" \
@@ -93,6 +94,7 @@ class Server : public AddressData
 		void		OnServerLoop(void);
 		void		OnServerFdQueue(void);
 		void		CloseConnections(void);
+        bool        CheckDataValidity(void);
 		int			FindClient(int client_fd);
 		void		PreformServerCleanup(void);
 		void		CopySockData(int client_fd);
@@ -103,6 +105,7 @@ class Server : public AddressData
 		bool		JustConnected(int socketfd);
 		void		PopOutClientFd(int client_fd);
 		void		SendClientMessage(int client_fd);
+        bool        CheckLoginTimeout(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
 
