@@ -63,7 +63,8 @@
 		"unordered_map": "cpp",
 		"utility": "cpp",
 		"vector": "cpp",
-		"list": "cpp"
+		"list": "cpp",
+		"__functional_03": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "disabled"
 }

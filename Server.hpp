@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/14 12:47:10 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 11:10:40 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -121,7 +121,7 @@ class Server : public AddressData
 		
         void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
-        void		CreateCommandData(int client_fd, CommandType type);
+        Parse		CreateCommandData(int client_fd, CommandType type);
 		// void		FindCommand(int client_fd);
 
 		// commands

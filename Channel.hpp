@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/14 09:45:15 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 09:48:46 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <ctime>
 #include "Client.hpp"
 #include "Member.hpp"
+#include <sstream>
 
 #define MAX_SIZE 200
 #define ERR_NEEDMOREPARAMS(client, command)										("461 " + client + " " + command + " :Not enough parameters\r\n")
@@ -48,7 +49,8 @@
 #define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list\r\n")
 #define RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H 0 :" + realname + "\r\n")
 
-
+#define RPL_CHANNELMODEIS(client, channel, modes)								("324 " + client + " " + channel + " " + modes + "\r\n")
+#define RPL_CREATIONTIME(client, channel, creationtime)							("329 " + client + " " + channel + " " + creationtime + "\r\n")
 // numeric 
 class Channel {
 	public:
@@ -77,10 +79,13 @@ class Channel {
 		void				kick(Client &client, Client &kicked, std::string reason);
 		void				topic(Client &client, bool topic_exist, std::string topic);
 		void				who(Client &client); // execute when a client send " WHO #channel_name "
-		void		 		mode(Client &client);
 		void				invite(Client& client, Client &invited);
 		void				sendToAll(Client &client, std::string msg);
 		std::string			showUsers(Client& client) const;
+		void		 		mode(Client &client);
+		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
+		/* change the std::pair by target */
+		void				channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);
@@ -95,6 +100,7 @@ class Channel {
 		std::string 		_topic;
 		std::string 		_topic_setter;
 		std::string 		_time_topic_is_set;
+		time_t				_creation_time;
 		std::vector<Client>	_invited;
 		std::vector<Member>	_members;
 		void				_set_topic(const std::string& t, std::string setterName);
@@ -103,8 +109,6 @@ class Channel {
 		void				_remove_member(Client &client);
 		std::string			_get_time();
 		std::string			_members_prefixes(const Member& member) const;
-		void				_member_mode(Client &client, bool add_remove, std::string mode, Client& member);
-		void				_channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
 };
 
 #endif // Channel_HPP

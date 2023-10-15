@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/14 15:08:27 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 09:49:14 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,8 @@ Channel::Channel(const std::string& name) :
 _name(name),
 _size(5),
 _has_password(false),
-_invite_only(false)
+_invite_only(false),
+_creation_time(time(NULL))
 {}
 
 Channel::Channel(const std::string& name, const std::string& password) :
@@ -26,7 +27,8 @@ _name(name),
 _size(5),
 _has_password(true),
 _invite_only(false),
-_password(password)
+_password(password),
+_creation_time(time(NULL))
 {}
 
 Channel::~Channel()
@@ -210,7 +212,7 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-void			Channel::_channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
+void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
 {
 	std::vector<Member>::iterator client_it;
 
@@ -231,7 +233,7 @@ void			Channel::_channel_mode(Client &client, bool add_remove, std::pair<std::st
 	
 }
 
-void			Channel::_member_mode(Client &client, bool add_remove, std::string mode, Client& member)
+void			Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
 {
 	std::vector<Member>::iterator member_it;
 	std::vector<Member>::iterator client_it;
@@ -332,4 +334,22 @@ std::string		Channel::_members_prefixes(const Member& member) const
 	prefixes += member.getFounderPrev() ? "~" : "";
 	prefixes += member.getOperatorPrev() ? "@" : "";
 	return (prefixes);
+}
+
+void		 	Channel::mode(Client &client)
+{
+	std::string 		msg_to_send;
+	std::stringstream	ss;
+	std::string			creation_time;
+	std::string			modes("+");
+
+	ss << this->_creation_time;
+	ss >> creation_time;
+	modes += (this->_has_password ? "k" : "");
+	modes += (this->_invite_only ? "i" : "");
+	msg_to_send += ":" + client.getServername() + " ";
+	msg_to_send += RPL_CHANNELMODEIS(client.getNick(), this->_name, modes);
+	msg_to_send += ":" + client.getServername() + " ";
+	msg_to_send += RPL_CREATIONTIME(client.getNick(), this->_name, creation_time);
+	client.SetMessage(msg_to_send);
 }
