@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/12 12:38:27 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 14:58:24 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,8 @@ Client::~Client()  {
 }
 
 Client::Client(int socket_id, bool just_connected) {
+    Client();
+    this->user_connected_date = time(NULL);
 	this->socket_id = socket_id;
 	this->just_connected = just_connected;
 	
@@ -150,4 +152,8 @@ std::ostream& operator<<(std::ostream& os, Client &client)
 	os << "Server Name : " << client.getServername() << "\n";
 	os << "RealName : " << client.getRealname() << "\n";
 	return (os);
+}
+
+unsigned long Client::GetConnectedDate() const {
+    return (this->user_connected_date);
 }

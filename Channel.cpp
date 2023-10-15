@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/15 09:49:14 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 13:51:09 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -212,23 +212,33 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-void			Channel::channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode)
+void			Channel::channel_mode(Client &client, bool add_remove, std::string mode, std::string param)
 {
 	std::vector<Member>::iterator client_it;
 
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(":" + client.getHostname() + " " + ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
 	else if (!client_it->getOperatorPrev())
-		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(":" + client.getHostname() + " " + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
 	else
 	{
-		if (mode.first == "i")
+		if (mode == "i")
 			this->_invite_only = add_remove;
-		else if (mode.first == "k")
-			this->setPassword(mode.second, add_remove);
-		else if (mode.first == "l")
-			this->_size = (add_remove ? atoi(mode.second.c_str()) : -1);
+		else if (mode == "k")
+		{
+			if (param.empty() && add_remove)
+				client.SetMessage(":" + client.getHostname() + " " + ERR_NEEDMOREPARAMS(client.getNick(), "MODE +k"));
+			else if (add_remove && this->_has_password)
+				client.SetMessage(":" + client.getHostname() + " " + ERR_KEYSET(client.getNick(), this->_name));
+			else
+				this->setPassword(param, add_remove);
+		}
+		else if (mode == "l")
+		{
+			
+			this->_size = (add_remove ? atoi(param.c_str()) : -1);
+		}
 	}
 	
 }

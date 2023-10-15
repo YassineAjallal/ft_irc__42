@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 11:10:40 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 17:28:45 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
+#define MAX_TIMEOUT_DURATION 2
 #define MAX_IRC_MSGLEN 4096
 #define SRH 1
 
@@ -115,13 +116,15 @@ class Server : public AddressData
 		void		SendClientMessage(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
-
+		bool        CheckDataValidity(void);
+		bool        CheckLoginTimeout(int client_fd);
+		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);
 		
         void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
-        Parse		CreateCommandData(int client_fd, CommandType type);
+        void		CreateCommandData(int client_fd, CommandType type);
 		// void		FindCommand(int client_fd);
 
 		// commands

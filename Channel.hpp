@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/15 09:48:46 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/15 13:48:40 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,8 +36,7 @@
 #define ERR_USERNOTINCHANNEL(client, nick, channel) 							("441" + client + " " + nick + " " + channel +  " :They aren't on that channel\r\n")
 #define ERR_USERONCHANNEL(client, nick, channel) 								("443 " + client + " " + nick + " " + channel + ":is already on channel\r\n")
 #define ERR_INVITEONLYCHAN(client, channel) 									("473 " + client + " " + channel + " :Cannot join channel (+i)\r\n")
-
-
+#define	ERR_KEYSET(client, channel)												("467 " + client + " " + channel + " :Channel key already set\r\n")
 #define RPL_NOTOPIC(client, channel) 											("331 " + client + " " + channel + " :No topic is set\r\n")
 #define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + ":" + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) 							("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
@@ -85,7 +84,7 @@ class Channel {
 		void		 		mode(Client &client);
 		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
 		/* change the std::pair by target */
-		void				channel_mode(Client &client, bool add_remove, std::pair<std::string, std::string> mode);
+		void				channel_mode(Client &client, bool add_remove, std::string mode, std::string param);
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);
