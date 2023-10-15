@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 13:15:08 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 16:25:07 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -234,7 +234,6 @@ void Server::ReadClientFd(int client_fd) {
         } else if (rb <= 0) {
             clients.at(FindClient(client_fd)).SetBuffer(raw_data);
             std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
-            raw_data.clear();
             break ;
         }
     }
@@ -286,20 +285,28 @@ void	Server::KickClients(void) {
     -   Checks whether the data is valid or not (ending with "\\r\\n")
 */
 bool    Server::CheckDataValidity(void) {
-    if (!raw_data.empty()) {
-        for (size_t i = 0; i < raw_data.size(); i++) {
-            if (raw_data.at(i) == '\r' && raw_data.at(i + 1) == '\n' && raw_data.at(i + 2) == '\0')
-                return true;
-        }
-    }
-    return false;
+    return (raw_data.find("\r\n") != std::string::npos);
 }
 
  bool   Server::CheckLoginTimeout(int client_fd) {
     if (time(NULL) - clients.at(FindClient(client_fd)).GetConnectedDate() > MAX_TIMEOUT_DURATION)
         return true;
     return false;
- }
+}
+
+bool    Server::CheckConnectDataValidity(int client_fd) {
+    char *temp = std::strtok(const_cast<char *>(clients.at(FindClient(client_fd)).GetBuffer().c_str()), "\r\n");
+    while (temp) {
+        std::string tmp_str = temp, tmp_compare;
+        std::stringstream tmp_stream;
+        tmp_stream << tmp_str;
+        std::getline(tmp_stream, tmp_compare);
+        if (tmp_compare == "PASS")
+            return true;
+        temp = std::strtok(NULL, "\r\n");
+    }
+    return false;
+}
 
 /*
  - Authenticates the client.
@@ -317,45 +324,55 @@ void	Server::Authenticate(int client_fd) {
 	int index;
 
 	index = FindClient(client_fd);
-	if (index >= 0) {
-		pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
-		while (pass != NULL) {
-			hold_pass = pass;
-			if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
-				temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
-			}
-            else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
-                hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
-                std::getline(hold_nick_temp, hold_user, ' ');
-            }
-            else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
-                hold_nick_temp.clear();
-                hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
-                for (size_t i = 0; i < 4; i++) {
-                    std::getline(hold_nick_temp, tmp[i], ' ');
+    // if (CheckLoginTimeout(client_fd)) {
+    //     if (temp_pass != password) {
+	// 	    std::cout << "Client Couldn't Authenticate in time." << std::endl;
+    //         std::cout << "Timeout at: " << time(NULL) - clients.at(index).GetConnectedDate() << std::endl;
+	// 		DeleteClient(client_fd);
+	// 		return ;
+	// 	}
+    // }
+    if (CheckConnectDataValidity(client_fd)) {
+	    if (index >= 0) {
+	    	pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
+	    	while (pass != NULL) {
+	    		hold_pass = pass;
+	    		if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
+	    			temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
+	    		}
+                else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
+                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                    std::getline(hold_nick_temp, hold_user, ' ');
                 }
-                clients.at(FindClient(client_fd)).SetName(tmp[0]);
-                clients.at(FindClient(client_fd)).SetHostname(tmp[1]);
-                clients.at(FindClient(client_fd)).SetServername(tmp[2]);
-                tmp[3].erase(tmp[3].find(":", 0), 1);
-                clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
-
-                std::cout << "Name: " << clients.at(FindClient(client_fd)).GetNameName() << std::endl;
-                std::cout << "HostName: " << clients.at(FindClient(client_fd)).GetHostname() << std::endl;
-                std::cout << "ServerName: " << clients.at(FindClient(client_fd)).GetServername() << std::endl;
-                std::cout << "RealName: " << clients.at(FindClient(client_fd)).GetRealname() << std::endl;
-                
-            }
-			pass = std::strtok(NULL, "\r\n");
-		}
-        clients.at(index).SetNick(hold_user);
-		if (temp_pass != password || CheckLoginTimeout(client_fd)) {
-			std::cout << "PASS " + temp_pass << std::endl;
-			DeleteClient(client_fd);
-			return ;
-		}
-		clients.at(index).SetJustConnectedStatus(false);
-	}
+                else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
+                    hold_nick_temp.clear();
+                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                    for (size_t i = 0; i < 4; i++) {
+                        std::getline(hold_nick_temp, tmp[i], ' ');
+                    }
+                    clients.at(FindClient(client_fd)).SetName(tmp[0]);
+                    clients.at(FindClient(client_fd)).SetHostname(tmp[1]);
+                    clients.at(FindClient(client_fd)).SetServername(tmp[2]);
+                    tmp[3].erase(tmp[3].find(":", 0), 1);
+                    clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
+    
+                    std::cout << "Name: " << clients.at(FindClient(client_fd)).GetNameName() << std::endl;
+                    std::cout << "HostName: " << clients.at(FindClient(client_fd)).GetHostname() << std::endl;
+                    std::cout << "ServerName: " << clients.at(FindClient(client_fd)).GetServername() << std::endl;
+                    std::cout << "RealName: " << clients.at(FindClient(client_fd)).GetRealname() << std::endl;
+                    clients.at(index).SetJustConnectedStatus(false);
+                    
+                }
+	    		pass = std::strtok(NULL, "\r\n");
+	    	}
+            clients.at(index).SetNick(hold_user);
+	    	if (temp_pass != password) {
+	    		std::cout << "PASSWORD DOES NOT MATCH " + temp_pass << std::endl;
+	    		DeleteClient(client_fd);
+	    		return ;
+	    	}
+	    }
+    }
 }
 
 /*
@@ -391,17 +408,15 @@ void	Server::OnServerFdQueue(void) {
             }
 			ReadClientFd(this->c_fd_queue[i].fd);
             if (CheckDataValidity()) {
-			    if (JustConnected(c_fd_queue[i].fd) && !raw_data.empty()) {
+			    if (JustConnected(c_fd_queue[i].fd))
 			    	Authenticate(c_fd_queue[i].fd);
-			    } else {
-			        Interpreter(c_fd_queue[i].fd);
-                }
+			    Interpreter(c_fd_queue[i].fd);
+                raw_data.clear();
             }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
 		}
-		raw_data.clear();
 		send_buffer.clear();
 	}
 }
@@ -509,7 +524,7 @@ void	Server::Interpreter(int client_fd) {
     } else {
         Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
     }
-    //PrintCommandData(Data);
+    PrintCommandData(Data);
     clients.at(FindClient(client_fd)).SetBuffer("");
     clients.at(FindClient(client_fd)).SetMessage("");
     /*

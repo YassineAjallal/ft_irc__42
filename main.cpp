@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/06 15:16:11 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 16:24:34 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,9 @@
 	inside Server Class.
 
 	- Make sure to check password for spaces
+
+    - Be careful of SetConnectedStatus because
+    of malicious string concatination
 */
 
 int main(int ac, char **av) {

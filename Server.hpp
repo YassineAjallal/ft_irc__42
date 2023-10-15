@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 13:12:51 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/15 16:14:16 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,7 @@ class Server : public AddressData
 		void		ReadClientFd(int client_fd);
 		bool		JustConnected(int socketfd);
 		void		PopOutClientFd(int client_fd);
+        bool        CheckConnectDataValidity(int client_fd);
 		void		SendClientMessage(int client_fd);
         bool        CheckLoginTimeout(int client_fd);
 		bool		GenerateServerData(const std::string &port);
