@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 17:29:53 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 16:56:53 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -362,10 +362,10 @@ void	Server::Authenticate(int client_fd) {
             		clients.at(index).SetJustConnectedStatus(false);
 					raw_data.clear();
     
-                    std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
-                    std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
-                    std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
-                    std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
+                    // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
+                    // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
+                    // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
+                    // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
                     
                 }
 	    		pass = std::strtok(NULL, "\r\n");
@@ -412,7 +412,7 @@ void	Server::OnServerFdQueue(void) {
                 continue;
             }
 			ReadClientFd(this->c_fd_queue[i].fd);
-            // if (CheckDataValidity()) {
+            if (CheckDataValidity()) {
 			    if (JustConnected(c_fd_queue[i].fd))
 				{
 			    	Authenticate(c_fd_queue[i].fd);
@@ -420,7 +420,7 @@ void	Server::OnServerFdQueue(void) {
 				}
 				else
 			    	Interpreter(c_fd_queue[i].fd);
-            // }
+            }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
@@ -526,8 +526,7 @@ void	Server::Interpreter(int client_fd)
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	// PrintCommandData(*(this->_data));
-	// std::cout << "---------- here --------" << std::endl;
+	PrintCommandData(*(this->_data));
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -536,6 +535,8 @@ void	Server::Interpreter(int client_fd)
 		this->who();
 	else if (this->_data->getCommand() == "MODE")
 		this->mode();
+	else if (this->_data->getCommand() == "PRIVMSG")
+		this->privMsg();
 	raw_data.clear();
 	clients.at(FindClient(client_fd)).SetBuffer("");
 }
@@ -651,3 +652,80 @@ void	Server::mode()
 		// }
 	}
 }
+
+void		Server::privMsg()
+{
+	Client& 						client = this->_data->getClient();
+	size_t 							pos;
+	bool							send_to_operator;
+	bool							send_to_founder;
+	std::list<Channel>::iterator	channel_it;
+	std::vector<Client>::iterator	client_it;
+	std::string						msg_to_send;
+	std::string						target;
+	// this->PrintCommandData(*(this->_data));
+	if (this->_data->getTarget().size() == 0)
+		client.SetMessage(":" + client.getHostname() + " " + ERR_NORECIPIENT(client.getNick(), "PRIVMSG"));
+	else if (this->_data->getMessage().empty())
+			client.SetMessage(":" + client.getHostname() + " " + ERR_NOTEXTTOSEND(client.getNick()));
+	else
+	{
+		target = this->_data->getTarget().at(0);
+		std::cout << "target -> " << target << std::endl;
+		pos = target.find('#');
+		send_to_operator = false;
+		send_to_founder = false;
+		if (pos != std::string::npos)
+		{
+			for (size_t i = 0; i < pos; i++)
+			{
+				if (target.at(i) == '@')
+				{
+					send_to_operator = true;
+					target.erase(i, 1);
+				}
+				else if (target.at(i) == '~')
+				{
+					send_to_founder = true;
+					target.erase(i, 1);
+				}
+			}
+			channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);	
+			if (channel_it == this->_channels.end())
+				client.SetMessage(":" + client.getHostname() + " " + ERR_NOSUCHNICK(client.getNick(), target));
+			else
+			{
+				msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
+				if (send_to_operator)
+					channel_it->sendToOperators(client, msg_to_send);
+				else if(send_to_founder)
+					channel_it->sendToFounder(client, msg_to_send);
+				else 
+					channel_it->sendToAll(client, msg_to_send);
+			}
+		}
+		else
+		{
+			client_it = std::find(this->clients.begin(), this->clients.end(), target);
+			msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
+			if (client_it == this->clients.end())
+				client.SetMessage(":" + client.getHostname() + " " + ERR_NOSUCHNICK(client.getNick(), target));
+			else
+				client_it->SetMessage(msg_to_send);
+		}
+	}
+	
+}
+
+void		Server::quit(int client_fd)
+{
+	DeleteClient(client_fd);
+	
+}
+// 401 no such nick
+// 404 
+// 411
+// 412
+// 301
+
+// fix the topic reply

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 14:59:00 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 12:00:04 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,7 @@ class Client : public AddressDataClient, public ClientInfo
         const std::string&	getRealname() const;
 
 		bool				operator==(const Client& c);
+		bool				operator==(const std::string& s);
 		bool				operator!=(const Client& c);
 };
 

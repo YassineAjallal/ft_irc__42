@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 17:28:45 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 16:56:06 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,10 @@
 #define MAX_TIMEOUT_DURATION 2
 #define MAX_IRC_MSGLEN 4096
 #define SRH 1
+
+#define	ERR_NOSUCHNICK(client, nickname)	("401 " + client + " " + nickname + " :No such nick/channel\r\n")
+#define ERR_NORECIPIENT(client, command)	("411 " + client + " :No recipient given (" + command + ")\r\n")
+#define ERR_NOTEXTTOSEND(client)			("412 " + client + " :No text to send\r\n")
 
 #define INTRO "Welcome to:\n" \
 "     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
@@ -133,4 +137,6 @@ class Server : public AddressData
 		void		join();
 		void		kick();
 		void		mode();
+		void		quit(int cliet_fd);
+		void		privMsg();
 };

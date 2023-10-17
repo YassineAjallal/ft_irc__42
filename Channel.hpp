@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/15 13:48:40 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 11:30:23 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,8 @@ class Channel {
 		void				who(Client &client); // execute when a client send " WHO #channel_name "
 		void				invite(Client& client, Client &invited);
 		void				sendToAll(Client &client, std::string msg);
+		void				sendToOperators(Client &client, std::string msg);
+		void				sendToFounder(Client &client, std::string msg);
 		std::string			showUsers(Client& client) const;
 		void		 		mode(Client &client);
 		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);

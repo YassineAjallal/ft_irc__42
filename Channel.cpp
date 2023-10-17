@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/15 13:51:09 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 11:33:38 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -362,4 +362,18 @@ void		 	Channel::mode(Client &client)
 	msg_to_send += ":" + client.getServername() + " ";
 	msg_to_send += RPL_CREATIONTIME(client.getNick(), this->_name, creation_time);
 	client.SetMessage(msg_to_send);
+}
+
+void			Channel::sendToOperators(Client &client, std::string msg)
+{
+	for (size_t i = 0; i < this->_members.size(); i++)
+		if (this->_members[i] != client && this->_members[i].getOperatorPrev())
+			this->_members[i].getClient()->SetMessage(msg);
+}
+
+void			Channel::sendToFounder(Client &client, std::string msg)
+{
+	for (size_t i = 0; i < this->_members.size(); i++)
+		if (this->_members[i] != client && this->_members[i].getFounderPrev())
+			this->_members[i].getClient()->SetMessage(msg);
 }

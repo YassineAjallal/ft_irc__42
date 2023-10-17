@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 14:58:24 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 12:00:19 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,6 +132,11 @@ const std::string& Client::getRealname() const {
 bool		Client::operator==(const Client& c)
 {
 	return (this->socket_id == c.getSockID());
+}
+
+bool		Client::operator==(const std::string& s)
+{
+	return (this->nick == s);
 }
 
 bool		Client::operator!=(const Client& c)
