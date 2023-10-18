@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/16 11:30:23 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/18 11:01:52 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 #include "Client.hpp"
 #include "Member.hpp"
 #include <sstream>
+#include "Toolkit.hpp"
 
 #define MAX_SIZE 200
 #define ERR_NEEDMOREPARAMS(client, command)										("461 " + client + " " + command + " :Not enough parameters\r\n")

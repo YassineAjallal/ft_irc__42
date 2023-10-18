@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/16 11:33:38 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/18 11:23:53 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,13 +155,13 @@ void 			Channel::join(Client &client)
 			else
 				this->_add_member(client, false);
 	
-			messageToSend += ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
-			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPIC(client.getNick(), this->_name, this->_topic) ));
-			messageToSend += (this->_topic.empty() ? "" : ( ":" + client.getServername() + " " + RPL_TOPICWHOTIME(client.getNick(), this->_name, this->_topic_setter, this->_time_topic_is_set) ));
-			messageToSend += ":" + client.getServername() + " " + this->showUsers(client);
-			messageToSend += ":" + client.getServername() + " " + RPL_ENDOFNAMES(client.getNick(), this->_name);
+			messageToSend += _user_info(client, true) + "JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
+			messageToSend += (this->_topic.empty() ? "" : ( _user_info(client, false) + RPL_TOPIC(client.getNick(), this->_name, this->_topic) ));
+			messageToSend += (this->_topic.empty() ? "" : ( _user_info(client, false) + RPL_TOPICWHOTIME(client.getNick(), this->_name, this->_topic_setter, this->_time_topic_is_set) ));
+			messageToSend += _user_info(client, false) + this->showUsers(client);
+			messageToSend += _user_info(client, false) + RPL_ENDOFNAMES(client.getNick(), this->_name);
 			client.SetMessage(messageToSend);
-			messageToSend = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
+			messageToSend = _user_info(client, true) + "JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
 			this->sendToAll(client, messageToSend);
 		}
 	}
@@ -181,14 +181,16 @@ void 			Channel::part(Client &client, std::string reason)
 
 std::string		Channel::_get_time()
 {
-	time_t		current_time;
-	struct tm*	time_info;
+	time_t				current_time;
+	std::stringstream 	ss;
+	std::string			time_string;
+	
 
 	current_time = time(NULL);
-	time_info = localtime(&current_time);
-	return ("time");
-	// return (time_info->tm_mday + "-" + (time_info->tm_mon + 1) + "-" + time_info->tm_year + 
-	// 		" at " + time_info->tm_hour + ":" + time_info->tm_min);
+	ss << current_time;
+	ss >> time_string;
+	std::cout << time_string << std::endl;
+	return (time_string);
 }
 
 void 			Channel::kick(Client &client, Client &kicked, std::string reason)
@@ -218,9 +220,9 @@ void			Channel::channel_mode(Client &client, bool add_remove, std::string mode, 
 
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->_on_channel(client))
-		client.SetMessage(":" + client.getHostname() + " " + ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
 	else if (!client_it->getOperatorPrev())
-		client.SetMessage(":" + client.getHostname() + " " + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
 	else
 	{
 		if (mode == "i")
@@ -228,9 +230,9 @@ void			Channel::channel_mode(Client &client, bool add_remove, std::string mode, 
 		else if (mode == "k")
 		{
 			if (param.empty() && add_remove)
-				client.SetMessage(":" + client.getHostname() + " " + ERR_NEEDMOREPARAMS(client.getNick(), "MODE +k"));
+				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE +k"));
 			else if (add_remove && this->_has_password)
-				client.SetMessage(":" + client.getHostname() + " " + ERR_KEYSET(client.getNick(), this->_name));
+				client.SetMessage(_user_info(client, false) + ERR_KEYSET(client.getNick(), this->_name));
 			else
 				this->setPassword(param, add_remove);
 		}
@@ -291,22 +293,24 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 	std::vector<Member>::iterator client_it;
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getName(), this->_name));
 	else if (!topic_exist)
-			client.SetMessage(this->_has_topic 
-								? RPL_TOPIC(client.getName(), this->_name, this->_topic) +
-									RPL_TOPICWHOTIME(client.getName(), this->_name, this->_topic_setter, this->_time_topic_is_set)
-								: RPL_NOTOPIC(client.getName(), this->_name) + "\r\n"
-							);
+	{
+		if (this->_has_topic)
+			client.SetMessage(_user_info(client, false) + RPL_TOPIC(client.getName(), this->_name, this->_topic) + 
+							_user_info(client, false) + RPL_TOPICWHOTIME(client.getName(), this->_name, this->_topic_setter, this->_time_topic_is_set));
+		else
+			client.SetMessage(_user_info(client, false) +  RPL_NOTOPIC(client.getName(), this->_name));
+	}
 	else
 	{
 		if (!client_it->getTopicPrev())
-			client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
+			client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
 		else
 		{
 			this->_set_topic(topic, client.getName());
-			client.SetMessage("TOPIC " + this->_topic + "\r\n");
-			this->sendToAll(client, "TOPIC " + this->_topic + "\r\n");
+			client.SetMessage(_user_info(client, true) + "TOPIC " + this->_name + " :" + this->_topic + "\r\n");
+			this->sendToAll(client, _user_info(client, true) + "TOPIC " + this->_name + " :" + this->_topic + "\r\n");
 		}
 	}
 	

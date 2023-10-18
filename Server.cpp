@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/16 16:56:53 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/18 11:16:40 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,7 +236,7 @@ void Server::ReadClientFd(int client_fd) {
             raw_data += buf;
         } else if (rb <= 0) {
             clients.at(FindClient(client_fd)).SetBuffer(raw_data);
-            std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
+            // std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
             break ;
         }
     }
@@ -526,7 +526,7 @@ void	Server::Interpreter(int client_fd)
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	PrintCommandData(*(this->_data));
+	// PrintCommandData(*(this->_data));
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -537,6 +537,8 @@ void	Server::Interpreter(int client_fd)
 		this->mode();
 	else if (this->_data->getCommand() == "PRIVMSG")
 		this->privMsg();
+	else if (this->_data->getCommand() == "TOPIC")
+		this->topic();
 	raw_data.clear();
 	clients.at(FindClient(client_fd)).SetBuffer("");
 }
@@ -548,7 +550,7 @@ void	Server::nick()
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-		client.SetMessage(":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " NICK" + " :" + nickname + "\r\n");
+		client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
 		client.SetNick(nickname);
 	}
 }
@@ -570,13 +572,14 @@ void	Server::join()
 			if (channel_it->getPassword() == channel_password)
 				channel_it->join(client);
 			else
-				client.SetMessage(":" + client.getServername() + " " + ERR_BADCHANNELKEY(client.getName(), channel_it->getName()));
+				client.SetMessage(_user_info(client, false) + ERR_BADCHANNELKEY(client.getName(), channel_it->getName()));
 		}
 		else
 			channel_it->join(client);
 	}
 	else
-		client.SetMessage(":" + client.getServername() + " " + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -608,9 +611,10 @@ void	Server::who()
 			if (channel_it != this->_channels.end())
 				channel_it->who(client);
 			else
-				client.SetMessage(":" + client.getServername() + " " + RPL_ENDOFWHO(client.getNick(), first_arg_type));
+				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
 		}
 	}
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 // void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
@@ -632,7 +636,7 @@ void	Server::who()
 // }
 void	Server::mode()
 {
-	this->PrintCommandData(*(this->_data));   
+	// this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
 	const std::string&					target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
@@ -640,7 +644,7 @@ void	Server::mode()
 	{
 		channel_it = std::find(this->_channels.begin(), this->_channels.end(), target_name);
 		if (channel_it == this->_channels.end())
-			client.SetMessage(":" + client.getServername() + " " + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
+			client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
 		// else
 		// {
 		// 	if (this->_data->getArgs().size() == 1)
@@ -651,6 +655,7 @@ void	Server::mode()
 		// 	}
 		// }
 	}
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void		Server::privMsg()
@@ -665,13 +670,12 @@ void		Server::privMsg()
 	std::string						target;
 	// this->PrintCommandData(*(this->_data));
 	if (this->_data->getTarget().size() == 0)
-		client.SetMessage(":" + client.getHostname() + " " + ERR_NORECIPIENT(client.getNick(), "PRIVMSG"));
+		client.SetMessage(_user_info(client, false) + ERR_NORECIPIENT(client.getNick(), "PRIVMSG"));
 	else if (this->_data->getMessage().empty())
-			client.SetMessage(":" + client.getHostname() + " " + ERR_NOTEXTTOSEND(client.getNick()));
+			client.SetMessage(_user_info(client, false) + ERR_NOTEXTTOSEND(client.getNick()));
 	else
 	{
 		target = this->_data->getTarget().at(0);
-		std::cout << "target -> " << target << std::endl;
 		pos = target.find('#');
 		send_to_operator = false;
 		send_to_founder = false;
@@ -692,7 +696,7 @@ void		Server::privMsg()
 			}
 			channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);	
 			if (channel_it == this->_channels.end())
-				client.SetMessage(":" + client.getHostname() + " " + ERR_NOSUCHNICK(client.getNick(), target));
+				client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
 			else
 			{
 				msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
@@ -709,23 +713,26 @@ void		Server::privMsg()
 			client_it = std::find(this->clients.begin(), this->clients.end(), target);
 			msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
 			if (client_it == this->clients.end())
-				client.SetMessage(":" + client.getHostname() + " " + ERR_NOSUCHNICK(client.getNick(), target));
+				client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
 			else
 				client_it->SetMessage(msg_to_send);
 		}
 	}
-	
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
-
-void		Server::quit(int client_fd)
-{
-	DeleteClient(client_fd);
-	
-}
-// 401 no such nick
-// 404 
-// 411
-// 412
-// 301
 
 // fix the topic reply
+void 		Server::topic()
+{
+	this->PrintCommandData(*this->_data);
+	Client&							client = this->_data->getClient();
+	std::string						target;
+	std::list<Channel>::iterator	channel_it;
+
+	target = this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0);
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);
+	if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target));
+	else
+		channel_it->topic(client, !this->_data->getMessage().empty(), this->_data->getMessage());
+}
