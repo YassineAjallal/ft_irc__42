@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/18 11:16:40 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/18 13:43:03 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -186,7 +186,7 @@ void	Server::DeleteClient(int client_fd) {
 /*
  - Copies socket data for each client, useful if you want to extract the ip later on
 */
-void		Server::CopySockData(int client_fd) {
+void	Server::CopySockData(int client_fd) {
 	this->clients.at(FindClient(client_fd)).client_sock_data = this->client_sock_data;
 	this->clients.at(FindClient(client_fd)).socket_data_size = this->socket_data_size;
 }
@@ -212,7 +212,7 @@ void	Server::InsertClient(int client_fd) {
 	- Finds the right client index from the poll queue since poll queue has the socket fd
 	  so the result might always be different by up to one index more than poll queue 
 */
-int	Server::FindClient(int client_fd) {
+int		Server::FindClient(int client_fd) {
 	size_t i = 0;
 	while (i < clients.size()) {
 		if (clients.at(i).getSockID() == client_fd)
@@ -226,7 +226,7 @@ int	Server::FindClient(int client_fd) {
  	- Reads the input given by a certain client and stores it in a special buffer accessible only
       for that client.
 */
-void Server::ReadClientFd(int client_fd) {
+void 	Server::ReadClientFd(int client_fd) {
     char buf[MAX_IRC_MSGLEN];
     _bzero(buf, MAX_IRC_MSGLEN);
     while (SRH) {
@@ -472,7 +472,7 @@ void    Server::PrintCommandData(Parse &Data) {
     std::cout << std::endl;
 }
 
-void  Server::CreateCommandData(int client_fd, CommandType type) {
+void  	Server::CreateCommandData(int client_fd, CommandType type) {
     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
 	str.replace(str.find("\r\n"), 2, "");
     std::string Accumulated_Message;
@@ -539,6 +539,8 @@ void	Server::Interpreter(int client_fd)
 		this->privMsg();
 	else if (this->_data->getCommand() == "TOPIC")
 		this->topic();
+	else if (this->_data->getCommand() == "INVITE")
+		this->invite();
 	raw_data.clear();
 	clients.at(FindClient(client_fd)).SetBuffer("");
 }
@@ -658,7 +660,7 @@ void	Server::mode()
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
-void		Server::privMsg()
+void	Server::privMsg()
 {
 	Client& 						client = this->_data->getClient();
 	size_t 							pos;
@@ -668,7 +670,6 @@ void		Server::privMsg()
 	std::vector<Client>::iterator	client_it;
 	std::string						msg_to_send;
 	std::string						target;
-	// this->PrintCommandData(*(this->_data));
 	if (this->_data->getTarget().size() == 0)
 		client.SetMessage(_user_info(client, false) + ERR_NORECIPIENT(client.getNick(), "PRIVMSG"));
 	else if (this->_data->getMessage().empty())
@@ -721,8 +722,8 @@ void		Server::privMsg()
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
-// fix the topic reply
-void 		Server::topic()
+
+void 	Server::topic()
 {
 	this->PrintCommandData(*this->_data);
 	Client&							client = this->_data->getClient();
@@ -735,4 +736,22 @@ void 		Server::topic()
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target));
 	else
 		channel_it->topic(client, !this->_data->getMessage().empty(), this->_data->getMessage());
+}
+
+void	Server::invite()
+{
+	std::vector<Client>::iterator	target_it;
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+	const std::string&				target = this->_data->getArgs().at(0);
+	const std::string&				channel = this->_data->getArgs().at(1);
+
+	target_it = std::find(this->clients.begin(), this->clients.end(), target);
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel);
+	if (target_it == this->clients.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
+	else if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel));
+	else
+		channel_it->invite(client, *target_it);
 }

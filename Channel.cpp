@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/18 11:23:53 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/18 13:38:56 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -275,16 +275,16 @@ void			Channel::invite(Client& client, Client &invited)
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	invited_it = std::find(this->_members.begin(), this->_members.end(), invited);
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getName(), this->_name));
 	else if (this->_invite_only && !client_it->getOperatorPrev())
-		client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
 	else if (invited_it != this->_members.end())
-		client.SetMessage(ERR_USERONCHANNEL(client.getName(), invited.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_USERONCHANNEL(client.getName(), invited.getName(), this->_name));
 	else
 	{
 		this->_invited.push_back(invited);
-		client.SetMessage(RPL_INVITING(client.getName(), invited.getName(), this->_name) + "\r\n");
-		invited.SetMessage("INVITE " + client.getName() + "\r\n");
+		client.SetMessage(_user_info(client, false) + RPL_INVITING(client.getName(), invited.getName(), this->_name));
+		invited.SetMessage(_user_info(client, true) + "INVITE " + invited.getNick() + " " + this->_name + "\r\n");
 	}
 }
 
