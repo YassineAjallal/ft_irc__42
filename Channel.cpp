@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/18 13:38:56 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 13:34:35 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -197,19 +197,19 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 {
 	std::vector<Member>::iterator it;
 	if (!this->_on_channel(client))
-		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
+		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getName(), this->_name));
 	else
 	{
 		it = std::find(this->_members.begin(), this->_members.end(), client);
-		if (it->getOperatorPrev())
-			client.SetMessage(ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
+		if (!it->getOperatorPrev())
+			client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name));
 		else if (!this->_on_channel(kicked))
-			client.SetMessage(ERR_USERNOTINCHANNEL(client.getName(), kicked.getName(), this->_name) + "\r\n");
+			client.SetMessage(_user_info(client, false) + ERR_USERNOTINCHANNEL(client.getName(), kicked.getName(), this->_name));
 		else
 		{
 			this->_remove_member(kicked);
-			kicked.SetMessage("You have been kicked from " + this->_name + " by " + client.getName() + " because " + (reason.empty() ? "bad content" : reason) + "\r\n");
-			this->sendToAll(kicked, kicked.getName() + " has been kicked from " + this->_name + " by " + client.getName() + " because " + (reason.empty() ? "bad content" : reason) + "\r\n");
+			kicked.SetMessage(_user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason) + "\r\n");
+			this->sendToAll(kicked, _user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason)  + "\r\n");
 		}
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/18 13:43:03 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 14:37:42 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ Server::Server() : client_count(0)
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
 	this->_setChannels();
+	this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 
@@ -34,6 +35,7 @@ Server::Server(const Server& copy)
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
 	this->_setChannels();
+	this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 Server::Server(std::string port, std::string pass) {
@@ -541,6 +543,8 @@ void	Server::Interpreter(int client_fd)
 		this->topic();
 	else if (this->_data->getCommand() == "INVITE")
 		this->invite();
+	else if (this->_data->getCommand() == "KICK")
+		this->kick();
 	raw_data.clear();
 	clients.at(FindClient(client_fd)).SetBuffer("");
 }
@@ -591,11 +595,6 @@ void	Server::_setChannels()
 	this->_channels.push_back(Channel("#hmeftah", "hmeftah"));
 	this->_channels.push_back(Channel("#random"));
 	this->_channels.push_back(Channel("#general"));
-}
-
-void	Server::kick()
-{
-	// std::string	channel_name;
 }
 
 void	Server::who()
@@ -755,3 +754,25 @@ void	Server::invite()
 	else
 		channel_it->invite(client, *target_it);
 }
+void	Server::kick()
+{
+	std::string						target_name;
+	std::string 					channel_name;
+	std::vector<Client>::iterator	target_it;
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+	
+	channel_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0));
+	target_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(1) : this->_data->getTarget().at(1));
+	
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel_name);
+	target_it = std::find(this->clients.begin(), this->clients.end(), target_name);
+	if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+	else if (target_it == this->clients.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target_name));
+	else
+		channel_it->kick(client, *target_it, this->_data->getMessage());
+}
+
+/*-------------------- handle space in message ------------------------*/

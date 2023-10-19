@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/18 13:43:32 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 14:58:18 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,10 +135,10 @@ class Server : public AddressData
 		void		who();
 		void		nick();
 		void		join();
-		void		kick();
 		void		topic();
 		void		invite();
 		void		mode(); // (in progress)
 		void		quit(int cliet_fd);
 		void		privMsg();
+		void		kick();
 };
