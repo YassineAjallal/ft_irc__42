@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/19 14:37:42 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 15:24:17 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -394,9 +394,16 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
+	// std::list<Channel>::iterator channel_it;
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+			// channel_it = this->_channels.begin();
+			// for (; channel_it != this->_channels.end(); ++channel_it)
+			// 	channel_it->removeMember()
+			/* 
+				remove the disconnected ip from all channels 
+			*/
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {

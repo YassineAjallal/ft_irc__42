@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/19 13:34:35 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 15:25:19 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,7 +131,7 @@ void			Channel::_add_member(Client &client, bool role)
 	this->_members.push_back(Member(client, role, role, role));
 }
 
-void			Channel::_remove_member(Client &client)
+void			Channel::removeMember(Client &client)
 {
 		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
 }
@@ -139,10 +139,8 @@ void			Channel::_remove_member(Client &client)
 void 			Channel::join(Client &client)
 {
 	std::string messageToSend;
-	if (this->_on_channel(client))
-		client.SetMessage(client.getName() + " " + this->_name + " :You are already in this channel\r\n");
-	else if (this->_invite_only && 
-				(std::find(this->_invited.begin(), this->_invited.end(), client) == this->_invited.end()))
+	if (this->_invite_only && 
+			(std::find(this->_invited.begin(), this->_invited.end(), client) == this->_invited.end()))
 		client.SetMessage(ERR_INVITEONLYCHAN(client.getName(), this->_name) + "\r\n");
 	else
 	{
@@ -173,7 +171,7 @@ void 			Channel::part(Client &client, std::string reason)
 		client.SetMessage(ERR_NOTONCHANNEL(client.getName(), this->_name) + "\r\n");
 	else
 	{
-		this->_remove_member(client);
+		this->removeMember(client);
 		client.SetMessage("leave channel \"&" + this->_name + "\"\r\n");
 		this->sendToAll(client, client.getName() + " has leave " + this->_name + " because " + reason + "\r\n");
 	}
@@ -207,14 +205,14 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 			client.SetMessage(_user_info(client, false) + ERR_USERNOTINCHANNEL(client.getName(), kicked.getName(), this->_name));
 		else
 		{
-			this->_remove_member(kicked);
+			this->removeMember(kicked);
 			kicked.SetMessage(_user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason) + "\r\n");
 			this->sendToAll(kicked, _user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason)  + "\r\n");
 		}
 	}
 }
 
-void			Channel::channel_mode(Client &client, bool add_remove, std::string mode, std::string param)
+void			Channel::channelMode(Client &client, bool add_remove, std::string mode, std::string param)
 {
 	std::vector<Member>::iterator client_it;
 
@@ -245,7 +243,7 @@ void			Channel::channel_mode(Client &client, bool add_remove, std::string mode, 
 	
 }
 
-void			Channel::member_mode(Client &client, bool add_remove, std::string mode, Client& member)
+void			Channel::memberMode(Client &client, bool add_remove, std::string mode, Client& member)
 {
 	std::vector<Member>::iterator member_it;
 	std::vector<Member>::iterator client_it;

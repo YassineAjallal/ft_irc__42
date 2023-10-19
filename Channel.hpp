@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/18 13:50:46 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/19 15:21:31 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,9 +85,10 @@ class Channel {
 		void				sendToFounder(Client &client, std::string msg);
 		std::string			showUsers(Client& client) const;
 		void		 		mode(Client &client);
-		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
+		void				memberMode(Client &client, bool add_remove, std::string mode, Client& member);
 		/* change the std::pair by target */
-		void				channel_mode(Client &client, bool add_remove, std::string mode, std::string param);
+		void				channelMode(Client &client, bool add_remove, std::string mode, std::string param);
+		void				removeMember(Client &client);
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);
@@ -108,7 +109,6 @@ class Channel {
 		void				_set_topic(const std::string& t, std::string setterName);
 		bool				_on_channel(Client &client);
 		void				_add_member(Client &client, bool role);
-		void				_remove_member(Client &client);
 		std::string			_get_time();
 		std::string			_members_prefixes(const Member& member) const;
 };
