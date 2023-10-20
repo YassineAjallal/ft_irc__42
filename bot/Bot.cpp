@@ -20,8 +20,8 @@ Bot::Bot(const std::string &port, const std::string &pass)
     init_facts();
     init_help();
     this->Forbidden_msg.push_back("forbidden words:");
-    this->Forbidden_msg.push_back("nigga");
-    this->Forbidden_msg.push_back("nigger");
+    this->Forbidden_msg.push_back("");
+    this->Forbidden_msg.push_back("");
     _bzero(&this->hints, sizeof(this->hints));
     this->hints.ai_family = AF_INET;
 	this->hints.ai_socktype = SOCK_STREAM;
