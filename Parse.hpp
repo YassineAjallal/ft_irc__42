@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/08 11:22:38 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/09 12:07:00 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/14 09:50:08 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 #include <string>
 #include <vector>
 
-using std::string;
 
 class Client;
 
@@ -33,25 +32,25 @@ class Parse {
     ~Parse();
     
     /* Setters */
-    void    setCommand(string command);
-    void    setArgs(std::vector<string> args);
-    void    setTarget(std::vector<string> target);
-    void    setMessage(string message);
-    void    setType(CommandType type);
+    void    						setCommand(std::string command);
+    void    						setArgs(std::vector<std::string> args);
+    void    						setTarget(std::vector<std::string> target);
+    void    						setMessage(std::string message);
+    void    						setType(CommandType type);
     
     /* Getters */
-    const string 				&getCommand() const;
-    const std::vector<string>	&getArgs() const;
-    const std::vector<string>	&getTarget() const;
-    const string 				&getMessage() const;
-	Client&						getClient() const;
-    CommandType					getType() const;
+    const std::string 					&getCommand() const;
+    const std::vector<std::string>		&getArgs() const;
+    const std::vector<std::string>		&getTarget() const;
+    const std::string 					&getMessage() const;
+	Client&								getClient() const;
+    CommandType							getType() const;
     
   private:
-    Client& client;
-    string command;
-    std::vector<string> args;
-    std::vector<string> target;
-    string message;
-    CommandType type;
+    Client& 						client;
+    std::string 					command;
+    std::vector<std::string> 			args;
+    std::vector<std::string> 			target;
+    std::string 					message;
+    CommandType 					type;
 };

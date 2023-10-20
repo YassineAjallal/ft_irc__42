@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/11 14:52:14 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/16 12:00:04 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,17 +28,25 @@ struct AddressDataClient {
 		int 				server_socket_fd;
 };
 
-class Client : public AddressDataClient
+struct ClientInfo {
+    protected:
+        std::string name;
+        std::string hostname;
+        std::string servername;
+        std::string realname;
+};
+
+class Client : public AddressDataClient, public ClientInfo
 {
 	private:
-		std::string	 	name;
-		std::string		nick;
+		std::string	 	nick;
 		int	 			socket_id;
 		//int  channel_id;
 		bool 			just_connected;
 		bool			should_be_kicked;
 		std::string		raw_data;
 		std::string		send_buffer; // the message from server
+		unsigned long   user_connected_date;
 		
 		//bool			IsOperator;
 		
@@ -50,23 +58,31 @@ class Client : public AddressDataClient
 		~Client();
 
 		int					getSockID() const;
-		std::string			getName() const;
-		std::string			getNick() const;
 		bool				ShouldBeKicked() const;
 		void				SetKickStatus(bool status);
 		int					JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
-		void				SetName(const std::string& name);
-		void				SetNick(const std::string& nick);
+		unsigned long   	GetConnectedDate() const;
 		void				SetJustConnectedStatus(bool status);
-		std::string&	GetMessageBuffer(void);
+		std::string&		GetMessageBuffer(void);
 		void				SetBuffer(const std::string& buffer);
 		void				SetMessage(const std::string& buffer);
-		// compariason operator of client
-		bool		operator<(const Client& c);
-		bool		operator>(const Client& c);
-		bool		operator<=(const Client& c);
-		bool		operator>=(const Client& c);
-		bool		operator==(const Client& c);
-		bool		operator!=(const Client& c);
+
+		void				SetNick(const std::string& name);
+        void    			SetName(const std::string &name);
+        void    			SetHostname(const std::string &hostname);
+        void    			SetServername(const std::string &servername);
+        void    			SetRealname(const std::string &realname);
+
+        const std::string&	getNick() const;
+        const std::string&	getName() const;
+        const std::string&	getHostname() const;
+        const std::string&	getServername() const;
+        const std::string&	getRealname() const;
+
+		bool				operator==(const Client& c);
+		bool				operator==(const std::string& s);
+		bool				operator!=(const Client& c);
 };
+
+std::ostream& operator<<(std::ostream& os, Client &client);
