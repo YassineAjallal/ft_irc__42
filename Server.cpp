@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/21 10:42:27 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 15:15:59 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -504,7 +504,10 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
             if (pos != std::string::npos) {
                 it->erase(pos, 1);
                 while (it != args.end())
+				{
                     Accumulated_Message += *(it++);
+					(it != args.end()) ? Accumulated_Message += " " : Accumulated_Message += "";
+				}
                 this->_data->setMessage(Accumulated_Message);
                 break ;
             } else

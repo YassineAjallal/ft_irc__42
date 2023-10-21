@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/21 12:26:37 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 14:55:38 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -337,7 +337,7 @@ std::string		Channel::showUsers(Client& client) const
 	std::string users;
 	users += "353 " + client.getNick() + " = " + this->_name + " :";
 	for(size_t i = 0; i < this->_members.size(); i++)
-		users += (this->_members[i].getOperatorPrev() ? "@" : "")  + this->_members[i].getClient()->getNick();
+		users += (this->_members[i].getOperatorPrev() ? "@" : "")  + this->_members[i].getClient()->getNick() + " ";
 	users += "\r\n";
 	return (users);
 }
