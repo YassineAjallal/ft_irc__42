@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/19 15:24:17 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 10:42:27 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -653,15 +653,11 @@ void	Server::mode()
 		channel_it = std::find(this->_channels.begin(), this->_channels.end(), target_name);
 		if (channel_it == this->_channels.end())
 			client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
-		// else
-		// {
-		// 	if (this->_data->getArgs().size() == 1)
-		// 		channel_it->mode(client);
-		// 	else
-		// 	{
-				
-		// 	}
-		// }
+		else
+		{
+			if (this->_data->getArgs().size() == 1)
+				channel_it->mode(client);
+		}
 	}
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/19 15:25:19 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 12:26:37 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -313,6 +313,7 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 	}
 	
 }
+
 void			Channel::who(Client &client)
 {
 	std::string who_reply;
@@ -324,7 +325,8 @@ void			Channel::who(Client &client)
 								  this->_members[i].getClient()->getName(), 
 								  this->_members[i].getClient()->getHostname(), 
 								  this->_members[i].getClient()->getServername(), 
-								  this->_members[i].getClient()->getNick(), 
+								  this->_members[i].getClient()->getNick(),
+								  (this->_members[i].getOperatorPrev() ? "@" : ""),
 								  this->_members[i].getClient()->getRealname());
 	}
 	who_reply += ":" + client.getServername() + " " + RPL_ENDOFWHO(client.getNick(), this->_name);
@@ -335,7 +337,7 @@ std::string		Channel::showUsers(Client& client) const
 	std::string users;
 	users += "353 " + client.getNick() + " = " + this->_name + " :";
 	for(size_t i = 0; i < this->_members.size(); i++)
-		users += this->_members[i].getClient()->getNick() + "!~" + this->_members[i].getClient()->getName() + "@" + this->_members[i].getClient()->getHostname() + " ";
+		users += (this->_members[i].getOperatorPrev() ? "@" : "")  + this->_members[i].getClient()->getNick();
 	users += "\r\n";
 	return (users);
 }

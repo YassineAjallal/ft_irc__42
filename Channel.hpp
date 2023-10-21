@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/19 15:21:31 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 12:11:11 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,17 +42,37 @@
 #define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + ":" + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) 							("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) 												(prefix + nick + " ")
-#define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list\r\n")
+#define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list.\r\n")
 #define RPL_INVITING(client, nick, channel) 									("341 " + client + " " + nick + " " + channel + "\r\n")
 
 
-#define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list\r\n")
-#define RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H 0 :" + realname + "\r\n")
+#define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list.\r\n")
+#define RPL_WHOREPLY(client, channel, username, host, server, nick, prefixes, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H" + prefixes + " :0 " + realname + "\r\n")
 
 #define RPL_CHANNELMODEIS(client, channel, modes)								("324 " + client + " " + channel + " " + modes + "\r\n")
 #define RPL_CREATIONTIME(client, channel, creationtime)							("329 " + client + " " + channel + " " + creationtime + "\r\n")
 // numeric 
-class Channel {
+class Channel 
+{
+	private:
+		std::string 		_name;
+		int					_size;
+		bool				_has_password;
+		bool				_invite_only;
+		bool				_has_topic;
+		std::string 		_password;
+		std::string 		_topic;
+		std::string 		_topic_setter;
+		std::string 		_time_topic_is_set;
+		time_t				_creation_time;
+		std::vector<Client>	_invited;
+		std::vector<Member>	_members;
+		void				_set_topic(const std::string& t, std::string setterName);
+		bool				_on_channel(Client &client);
+		void				_add_member(Client &client, bool role);
+		std::string			_get_time();
+		std::string			_members_prefixes(const Member& member) const;
+
 	public:
 		Channel(const std::string& name); // has_pass = false, 
 		Channel(const std::string& name, const std::string& password);
@@ -86,31 +106,12 @@ class Channel {
 		std::string			showUsers(Client& client) const;
 		void		 		mode(Client &client);
 		void				memberMode(Client &client, bool add_remove, std::string mode, Client& member);
-		/* change the std::pair by target */
 		void				channelMode(Client &client, bool add_remove, std::string mode, std::string param);
 		void				removeMember(Client &client);
 	
 		bool				operator==(const std::string& c);
 		bool				operator!=(const std::string& c);
 
-	private:
-		std::string 		_name;
-		int					_size;
-		bool				_has_password;
-		bool				_invite_only;
-		bool				_has_topic;
-		std::string 		_password;
-		std::string 		_topic;
-		std::string 		_topic_setter;
-		std::string 		_time_topic_is_set;
-		time_t				_creation_time;
-		std::vector<Client>	_invited;
-		std::vector<Member>	_members;
-		void				_set_topic(const std::string& t, std::string setterName);
-		bool				_on_channel(Client &client);
-		void				_add_member(Client &client, bool role);
-		std::string			_get_time();
-		std::string			_members_prefixes(const Member& member) const;
 };
 
 #endif // Channel_HPP
