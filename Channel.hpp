@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/21 12:11:11 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 16:42:39 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ class Channel
 		bool				_has_password;
 		bool				_invite_only;
 		bool				_has_topic;
+		bool				_topic_priv;
 		std::string 		_password;
 		std::string 		_topic;
 		std::string 		_topic_setter;
@@ -84,11 +85,13 @@ class Channel
 		std::string			getTopic() const;
 		bool				getHasPassword() const;
 		bool				getInviteOnly() const;
+		bool				getTopicPriv() const;
 		size_t				getSize() const;
 
 		// setters
 		void				setPassword(const std::string& new_password, bool has_password);
 		void				setHasPassword(bool b);
+		void				setTopicPriv(bool b);
 		void				setSize(const int& s);
 		void				setTopicSetter(const std::string& ts);
 		void				setTopicTime(const std::string& tt);

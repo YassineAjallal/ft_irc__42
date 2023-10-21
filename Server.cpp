@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/21 15:15:59 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/21 17:12:41 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -647,9 +647,9 @@ void	Server::who()
 // }
 void	Server::mode()
 {
-	// this->PrintCommandData(*(this->_data));   
+	this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
-	const std::string&					target_name = this->_data->getArgs().at(0);
+	const std::string&				target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
 	if (target_name.at(0) == '#')
 	{
@@ -660,6 +660,32 @@ void	Server::mode()
 		{
 			if (this->_data->getArgs().size() == 1)
 				channel_it->mode(client);
+			// else
+			// {
+			// 	std::string modes = this->_data->getArgs().at(0);
+			// 	bool		add_remove = true;
+			// 	for (size_t i = 0; i < modes.size; i++)
+			// 	{
+			// 		if (modes.at(i) == '-')
+			// 			add_remove = false;
+			// 		else (modes.at(i) == '+')
+			// 			add_remove = true;
+			// 		else if (std::strchr("itlk", modes.at(i)))
+			// 		{
+			// 			channel_it->channelMode(client, add_remove, )
+			// 		}
+			// 		else if (modes.at(i) == 'o')
+			// 		{
+
+			// 		}
+			// 		else
+			// 		{
+						
+			// 		}
+			// 	}
+				
+			// }
+				
 		}
 	}
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
@@ -782,3 +808,5 @@ void	Server::kick()
 }
 
 /*-------------------- handle space in message ------------------------*/
+/*-------------------- check first that there is a falid mode ------------------------*/
+/*-------------------- remover memeber_prifixes function ------------------------*/
