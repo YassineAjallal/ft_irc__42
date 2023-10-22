@@ -8,7 +8,7 @@ class Client;
 
 class Member {
 public:
-    Member(Client &client, bool operator_priv, bool founder_priv, bool topic_priv);
+    Member(Client &client, bool operator_priv, bool founder_priv);
     ~Member();
 	bool	operator==(const Client& client);
 	bool	operator!=(const Client& client);

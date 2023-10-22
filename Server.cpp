@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/21 17:12:41 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/22 10:15:07 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -628,23 +628,41 @@ void	Server::who()
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
-// void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
-// {
-// 	std::string&	mode = this->_data->getArgs().at(1);
-// 	char			set_or_remove = mode.at(0);
-// 	mode.erase(mode.begin());
-// 	if (!mode.empty())
-// 	{
-// 		for (size_t i = 0; i < mode.size(); i++)
-// 		{
-// 			if (std::strchr("ikl", mode.at(i)))
-// 			{
-// 				channel_it->channel_mode()
-// 			}
-// 		}
-		
-// 	}
-// }
+void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
+{
+	std::string						modes = this->_data->getArgs().at(1);
+	bool							add_remove = true;
+	std::vector<Client>::iterator	member_it;
+	std::string						mode_param = (this->_data->getArgs().size() == 3 ? this->_data->getArgs().at(2) : "");
+
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		if (modes.at(i) == '-')
+			add_remove = false;
+		else if (modes.at(i) == '+')
+			add_remove = true;
+		else if (std::strchr("itlk", modes.at(i)))
+		{
+			if (this->_data->getArgs().size() == 3)
+				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			else
+				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+		}
+		else if (modes.at(i) == 'o')
+		{
+			if (!mode_param.empty())
+			{
+				member_it = std::find(this->clients.begin(), this->clients.end(), mode_param);
+				if (member_it == this->clients.end())
+					client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param));
+				else
+					channel_it->memberMode(client, add_remove, 'o', *member_it);
+			}
+		}
+		else
+			ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
+	}
+}
 void	Server::mode()
 {
 	this->PrintCommandData(*(this->_data));   
@@ -660,32 +678,8 @@ void	Server::mode()
 		{
 			if (this->_data->getArgs().size() == 1)
 				channel_it->mode(client);
-			// else
-			// {
-			// 	std::string modes = this->_data->getArgs().at(0);
-			// 	bool		add_remove = true;
-			// 	for (size_t i = 0; i < modes.size; i++)
-			// 	{
-			// 		if (modes.at(i) == '-')
-			// 			add_remove = false;
-			// 		else (modes.at(i) == '+')
-			// 			add_remove = true;
-			// 		else if (std::strchr("itlk", modes.at(i)))
-			// 		{
-			// 			channel_it->channelMode(client, add_remove, )
-			// 		}
-			// 		else if (modes.at(i) == 'o')
-			// 		{
-
-			// 		}
-			// 		else
-			// 		{
-						
-			// 		}
-			// 	}
-				
-			// }
-				
+			else
+				this->set_remove_mode(client, channel_it);	
 		}
 	}
 	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;

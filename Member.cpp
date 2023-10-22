@@ -2,11 +2,10 @@
 #include "Client.hpp"
 
 // Constructors
-Member::Member(Client &client, bool operator_priv, bool founder_priv, bool topic_priv) :
+Member::Member(Client &client, bool operator_priv, bool founder_priv) :
 _client(&client),
 _operator_priv(operator_priv),
-_founder_priv(founder_priv),
-_topic_priv(topic_priv)
+_founder_priv(founder_priv)
 {}
 Member::~Member(){}
 

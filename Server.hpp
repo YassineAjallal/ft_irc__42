@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/19 14:58:18 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/22 10:14:31 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,6 +132,7 @@ class Server : public AddressData
 		// void		FindCommand(int client_fd);
 
 		// commands
+		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);
 		void		who();
 		void		nick();
 		void		join();

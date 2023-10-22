@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/21 16:42:39 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/22 10:27:41 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,7 @@
 #define RPL_NAMREPLY(prefix, nick) 												(prefix + nick + " ")
 #define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list.\r\n")
 #define RPL_INVITING(client, nick, channel) 									("341 " + client + " " + nick + " " + channel + "\r\n")
+#define ERR_UNKNOWNMODE(client, modechar)										("472 " + client + " " + modechar + " :is unknown mode char to me\r\n")
 
 
 #define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list.\r\n")
@@ -108,8 +109,8 @@ class Channel
 		void				sendToFounder(Client &client, std::string msg);
 		std::string			showUsers(Client& client) const;
 		void		 		mode(Client &client);
-		void				memberMode(Client &client, bool add_remove, std::string mode, Client& member);
-		void				channelMode(Client &client, bool add_remove, std::string mode, std::string param);
+		void				memberMode(Client &client, bool add_remove, char mode, Client& member);
+		void				channelMode(Client &client, bool add_remove, char mode, std::string param);
 		void				removeMember(Client &client);
 	
 		bool				operator==(const std::string& c);
