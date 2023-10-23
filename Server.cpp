@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/22 10:15:07 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/23 16:06:42 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -427,8 +427,15 @@ void	Server::OnServerFdQueue(void) {
 			    	Authenticate(c_fd_queue[i].fd);
 					// std::cout << clients.at(FindClient(c_fd_queue[i].fd));
 				}
-				else
-			    	Interpreter(c_fd_queue[i].fd);
+				else {
+                    try {
+			    	    Interpreter(c_fd_queue[i].fd);
+                    } catch (Server::ClientQuitException &e) {
+                        DeleteClient(c_fd_queue[i].fd);
+                        std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+                        break ;
+                    }
+                }
             }
 		}
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
@@ -483,11 +490,11 @@ void    Server::PrintCommandData(Parse &Data) {
 
 void  	Server::CreateCommandData(int client_fd, CommandType type) {
     std::string str = clients.at(FindClient(client_fd)).GetBuffer();
-	str.replace(str.find("\r\n"), 2, "");
-    std::string Accumulated_Message;
+    std::string Accumulated_Message(str);
     std::vector<std::string> args;
     std::vector<std::string> targets;
     
+	str.replace(str.find("\r\n"), 2, "");
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
     if (token)
@@ -503,11 +510,10 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
             size_t pos = it->find(":");
             if (pos != std::string::npos) {
                 it->erase(pos, 1);
-                while (it != args.end())
-				{
-                    Accumulated_Message += *(it++);
-					(it != args.end()) ? Accumulated_Message += " " : Accumulated_Message += "";
-				}
+                pos = Accumulated_Message.find(":", 0);
+                if (pos != std::string::npos) {
+                    Accumulated_Message = Accumulated_Message.substr(pos + 1, Accumulated_Message.length() - (pos + 1));
+                }
                 this->_data->setMessage(Accumulated_Message);
                 break ;
             } else
@@ -538,7 +544,7 @@ void	Server::Interpreter(int client_fd)
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	// PrintCommandData(*(this->_data));
+	PrintCommandData(*(this->_data));
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -555,6 +561,9 @@ void	Server::Interpreter(int client_fd)
 		this->invite();
 	else if (this->_data->getCommand() == "KICK")
 		this->kick();
+    else if (this->_data->getCommand() == "QUIT") {
+        throw(Server::ClientQuitException());
+    }
 	raw_data.clear();
 	clients.at(FindClient(client_fd)).SetBuffer("");
 }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/22 10:14:31 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/23 16:04:02 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,4 +142,11 @@ class Server : public AddressData
 		void		quit(int cliet_fd);
 		void		privMsg();
 		void		kick();
+
+    class ClientQuitException : public std::exception {
+        public:
+            virtual const char* what() const throw() {
+                return "ClientQuitException";
+        }
+    };
 };
