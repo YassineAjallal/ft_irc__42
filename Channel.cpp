@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/22 10:38:59 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/23 12:29:53 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -249,7 +249,7 @@ void			Channel::channelMode(Client &client, bool add_remove, char mode, std::str
 		else if (mode == 'l' && atoi(param.c_str()) != this->_size)
 		{
 			if (param.empty())
-				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE" + sign + "l"));
+				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "l"));
 			else
 			{
 				this->_size = (add_remove ? atoi(param.c_str()) : -1);
@@ -266,7 +266,7 @@ void			Channel::channelMode(Client &client, bool add_remove, char mode, std::str
 		else
 		{
 			if (param.empty())
-				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE" + sign + "k"));
+				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "k"));
 			else if (add_remove && this->_has_password)
 				client.SetMessage(_user_info(client, false) + ERR_KEYSET(client.getNick(), this->_name));
 			else
