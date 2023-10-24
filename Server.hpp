@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/23 17:36:05 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 20:57:03 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
-#define MAX_TIMEOUT_DURATION 2
+#define MAX_TIMEOUT_DURATION 3
 #define MAX_IRC_MSGLEN 4096
 #define SRH 1
 
@@ -108,7 +108,10 @@ class Server : public AddressData
 		void		OnServerLoop(void);
 		void		OnServerFdQueue(void);
 		void		CloseConnections(void);
-		int			FindClient(int client_fd);
+		int			                FindClient(int client_fd);
+        std::list<Client>::iterator &GetClient(int client_fd);
+        bool        ProccessIncomingData(int client_fd);
+        bool        AcceptIncomingConnections(int socket_fd);
 		void		PreformServerCleanup(void);
 		void		CopySockData(int client_fd);
 		void		Authenticate(int client_fd);
@@ -121,7 +124,7 @@ class Server : public AddressData
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
 		bool        CheckDataValidity(void);
-		// bool        CheckLoginTimeout(int client_fd);
+		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);

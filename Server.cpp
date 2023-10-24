@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/24 15:16:01 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 21:27:48 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -233,6 +233,13 @@ int		Server::FindClient(int client_fd) {
 	return -1;
 }
 
+std::list<Client>::iterator &Server::GetClient(int client_fd) {
+    static std::list<Client>::iterator it;
+    it = clients.begin();
+    std::advance(it, FindClient(client_fd));
+    return it;
+}
+
 /*
  	- Reads the input given by a certain client and stores it in a special buffer accessible only
       for that client.
@@ -249,7 +256,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -307,11 +314,14 @@ bool    Server::CheckDataValidity(void) {
     return (raw_data.find("\r\n") != std::string::npos);
 }
 
-// bool   Server::CheckLoginTimeout(int client_fd) {
-//     if (time(NULL) - clients.at(FindClient(client_fd)).GetConnectedDate() > MAX_TIMEOUT_DURATION)
-//         return true;
-//     return false;
-// }
+bool   Server::CheckLoginTimeout(int client_fd) {
+    if (_gettime() -  GetClient(client_fd)->GetLastUserActivity() > MAX_TIMEOUT_DURATION && GetClient(client_fd)->JustConnectedStatus()) {
+        std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
+        DeleteClient(client_fd);
+        return true;
+    }
+    return false;
+}
 
 bool    Server::CheckConnectDataValidity(int client_fd) {
     
@@ -346,14 +356,6 @@ void	Server::Authenticate(int client_fd) {
 	int index;
 
 	index = FindClient(client_fd);
-    // if (CheckLoginTimeout(client_fd)) {
-    //     if (temp_pass != password) {
-	// 	    std::cout << "Client Couldn't Authenticate in time." << std::endl;
-    //         std::cout << "Timeout at: " << time(NULL) - clients.at(index).GetConnectedDate() << std::endl;
-	// 		DeleteClient(client_fd);
-	// 		return ;
-	// 	}
-    // }
     if (CheckConnectDataValidity(client_fd)) {
 	    if (index >= 0) {
 	    	pass = std::strtok(const_cast<char *>(std::find(clients.begin(), clients.end(), client_fd)->GetBuffer().c_str()), "\r\n");
@@ -398,6 +400,42 @@ void	Server::Authenticate(int client_fd) {
     }
 }
 
+bool        Server::ProccessIncomingData(int client_fd) {
+    ReadClientFd(client_fd);
+    if (CheckDataValidity()) {
+	    if (JustConnected(client_fd))
+	    	Authenticate(client_fd);
+		else {
+            try {
+	    	    Interpreter(client_fd);
+                raw_data.clear();
+            } catch (Server::ClientQuitException &e) {
+                DeleteClient(client_fd);
+                std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool    Server::AcceptIncomingConnections(int socket_fd) {
+    if (socket_fd == this->server_socket_fd) {
+        int new_client_fd = -1;
+        do {
+            new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	        if (new_client_fd > 0) {
+	        	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	        	InsertClient(new_client_fd);
+	        	std::cout << "Total Clients: " << clients.size() << std::endl;
+	        }
+        }
+        while (new_client_fd > 0);
+        return true;
+    }
+    return false;
+}
+
 /*
 	- Iterates over all file descriptors registered into poll() queue
 	- Checks if the client has written anything in it's fd, if it did
@@ -423,42 +461,15 @@ void	Server::OnServerFdQueue(void) {
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
-            if (this->c_fd_queue[i].fd == this->server_socket_fd) {
-                int new_client_fd = -1;
-                do {
-                    new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	                if (new_client_fd > 0) {
-	                	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	                	InsertClient(new_client_fd);
-	                	std::cout << "Total Clients: " << clients.size() << std::endl;
-	                }
-                }
-                while (new_client_fd > 0);
-                continue;
-            }
-			ReadClientFd(this->c_fd_queue[i].fd);
-            if (CheckDataValidity()) {
-			    if (JustConnected(c_fd_queue[i].fd))
-				{
-			    	Authenticate(c_fd_queue[i].fd);
-					// std::cout << clients.at(FindClient(c_fd_queue[i].fd));
-				}
-				else {
-                    try {
-			    	    Interpreter(c_fd_queue[i].fd);
-                        raw_data.clear();
-                    } catch (Server::ClientQuitException &e) {
-                        DeleteClient(c_fd_queue[i].fd);
-                        std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-                        break ;
-                    }
-                }
-            }
-		}
+            AcceptIncomingConnections(c_fd_queue[i].fd);
+            ProccessIncomingData(c_fd_queue[i].fd);
+        }
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
             send_buffer.clear();
 		}
+        if (CheckLoginTimeout(c_fd_queue[i].fd))
+            return ;
 	}
 }
 
