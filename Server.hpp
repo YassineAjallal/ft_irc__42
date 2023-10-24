@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/23 16:04:02 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/23 17:36:05 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,7 @@ class Server : public AddressData
 	private:
 		size_t						client_count;
 		std::string 				password;
-		std::vector<Client> 		clients;
+		std::list<Client> 		    clients;
 		std::vector<struct pollfd>	c_fd_queue;
 		std::vector<int> 			client_fds;
 		std::string 				raw_data;
@@ -121,7 +121,7 @@ class Server : public AddressData
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
 		bool        CheckDataValidity(void);
-		bool        CheckLoginTimeout(int client_fd);
+		// bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);

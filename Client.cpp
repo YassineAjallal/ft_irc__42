@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/16 12:00:19 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/23 17:38:00 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,6 +137,10 @@ bool		Client::operator==(const Client& c)
 bool		Client::operator==(const std::string& s)
 {
 	return (this->nick == s);
+}
+
+bool    Client::operator==(int c) {
+    return this->socket_id == c;
 }
 
 bool		Client::operator!=(const Client& c)
