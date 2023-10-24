@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parse.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/08 11:25:53 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/08 15:32:14 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/14 09:52:13 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,35 +39,35 @@ Parse& Parse::operator=(const Parse& src) {
 
 Parse::~Parse() {}
 
-void    Parse::setCommand(string command) {
+void    Parse::setCommand(std::string command) {
     this->command = command;
 }
 
-void    Parse::setArgs(std::vector<string> args) {
+void    Parse::setArgs(std::vector<std::string> args) {
     this->args = args;
 }
 
-void    Parse::setTarget(std::vector<string> target) {
+void    Parse::setTarget(std::vector<std::string> target) {
     this->target = target;
 }
 
-void    Parse::setMessage(string message) {
+void    Parse::setMessage(std::string message) {
     this->message = message;
 }
 
-const string &Parse::getCommand() const {
+const std::string &Parse::getCommand() const {
     return(this->command);
 }
 
-const std::vector<string> &Parse::getArgs() const {
+const std::vector<std::string> &Parse::getArgs() const {
     return (this->args);
 }
 
-const std::vector<string> &Parse::getTarget() const {
+const std::vector<std::string> &Parse::getTarget() const {
     return(this->target);
 }
 
-const string &Parse::getMessage() const {
+const std::string &Parse::getMessage() const {
     return(this->message);
 }
 
@@ -77,4 +77,9 @@ CommandType Parse::getType() const {
 
 void    Parse::setType(CommandType type) {
     this->type = type;
+}
+
+Client&				Parse::getClient() const
+{
+	return (this->client);
 }

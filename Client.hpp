@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 13:05:42 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 21:40:20 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <sys/time.h>
+#include "Toolkit.hpp"
 
 struct AddressDataClient {
 	public:
@@ -45,8 +47,8 @@ class Client : public AddressDataClient, public ClientInfo
 		bool 			just_connected;
 		bool			should_be_kicked;
 		std::string		raw_data;
-		std::string		send_buffer;
-        unsigned long   user_connected_date;
+		std::string		send_buffer; // the message from server
+		unsigned long   last_user_activity;
 		
 		//bool			IsOperator;
 		
@@ -57,27 +59,34 @@ class Client : public AddressDataClient, public ClientInfo
 		Client &operator=(const Client& copy);
 		~Client();
 
-        const std::string& GetName() const;
-		int			getSockID() const;
-		bool		ShouldBeKicked() const;
-		void		SetKickStatus(bool status);
-		int			JustConnectedStatus() const;
+		int					getSockID() const;
+		bool				ShouldBeKicked() const;
+		void				SetKickStatus(bool status);
+		int					JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
-		void		SetNick(const std::string& name);
-		void		SetJustConnectedStatus(bool status);
-		const std::string&	GetMessageBuffer(void) const;
-		void		SetBuffer(const std::string& buffer);
-		void		SetMessage(const std::string& buffer);
+		void				SetJustConnectedStatus(bool status);
+		std::string&		GetMessageBuffer(void);
+		void				SetBuffer(const std::string& buffer);
+		void				SetMessage(const std::string& buffer);
 
-        void    SetName(const std::string &name);
-        void    SetHostname(const std::string &hostname);
-        void    SetServername(const std::string &servername);
-        void    SetRealname(const std::string &realname);
+		void				SetNick(const std::string& name);
+        void    			SetName(const std::string &name);
+        void    			SetHostname(const std::string &hostname);
+        void    			SetServername(const std::string &servername);
+        void    			SetRealname(const std::string &realname);
 
-        const std::string& GetNameName() const;
-        const std::string& GetHostname() const;
-        const std::string& GetServername() const;
-        const std::string& GetRealname() const;
+        const std::string&	getNick() const;
+        const std::string&	getName() const;
+        const std::string&	getHostname() const;
+        const std::string&	getServername() const;
+        const std::string&	getRealname() const;
+        
+        size_t GetLastUserActivity() const;
 
-        unsigned long   GetConnectedDate() const;
+		bool				operator==(const Client& c);
+        bool                operator==(int c);
+		bool				operator==(const std::string& s);
+		bool				operator!=(const Client& c);
 };
+
+std::ostream& operator<<(std::ostream& os, Client &client);

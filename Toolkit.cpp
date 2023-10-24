@@ -6,11 +6,12 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:33:01 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/09/24 17:25:28 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 15:32:04 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <iostream>
+#include "Client.hpp"
 
 void	_bzero(void *ptr, size_t size) {
 
@@ -35,4 +36,24 @@ size_t	_strlen(const char *str) {
 		return 0;
 	while (str[len]) { len++; }
 	return len;
+}
+
+std::string	_user_info(Client& client, bool info_type)
+{
+	return (info_type
+			? ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " "
+			: ":" + client.getServername() + " "
+		);
+}
+
+/**
+ * Get the current time in seconds.
+ *
+ * @return The current time in seconds.
+ */
+size_t _gettime(void) {
+    struct timeval tm;
+    gettimeofday(&tm, NULL);
+
+    return tm.tv_sec;
 }

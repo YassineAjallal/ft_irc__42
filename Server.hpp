@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 16:14:16 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 21:42:14 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,26 +30,32 @@
 #include <cerrno>
 #include <cstring>
 #include <sstream>
+#include <list>
 #include "Toolkit.hpp"
 #include "Parse.hpp"
+#include "Channel.hpp"
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
+#define MAX_TIMEOUT_DURATION 3
 #define MAX_IRC_MSGLEN 4096
-#define MAX_TIMEOUT_DURATION 2
 #define SRH 1
 
+#define	ERR_NOSUCHNICK(client, nickname)	("401 " + client + " " + nickname + " :No such nick\r\n")
+#define ERR_NORECIPIENT(client, command)	("411 " + client + " :No recipient given (" + command + ")\r\n")
+#define ERR_NOTEXTTOSEND(client)			("412 " + client + " :No text to send\r\n")
+
 #define INTRO "Welcome to:\n" \
-"	██████  ▄▄▄       ██▀███   ▄▄▄       ██░ ██     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
-"▒██    ▒ ▒████▄    ▓██ ▒ ██▒▒████▄    ▓██░ ██▒   ▓██▒▓██ ▒ ██▒▒██▀ ▀█     ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒▓█   ▀ ▓██ ▒ ██▒ \n" \
-"░ ▓██▄   ▒██  ▀█▄  ▓██ ░▄█ ▒▒██  ▀█▄  ▒██▀▀██░   ▒██▒▓██ ░▄█ ▒▒▓█    ▄    ░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░▒███   ▓██ ░▄█ ▒ \n" \
-"  ▒   ██▒░██▄▄▄▄██ ▒██▀▀█▄  ░██▄▄▄▄██ ░▓█ ░██    ░██░▒██▀▀█▄  ▒▓▓▄ ▄██▒     ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░▒▓█  ▄ ▒██▀▀█▄   \n" \
-"▒██████▒▒ ▓█   ▓██▒░██▓ ▒██▒ ▓█   ▓██▒░▓█▒░██▓   ░██░░██▓ ▒██▒▒ ▓███▀ ░   ▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ░▒████▒░██▓ ▒██▒ \n" \
-"▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░ ▒▓ ░▒▓░ ▒▒   ▓▒█░ ▒ ░░▒░▒   ░▓  ░ ▒▓ ░▒▓░░ ░▒ ▒  ░   ▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ░░ ▒░ ░░ ▒▓ ░▒▓░ \n" \
-"░ ░▒  ░ ░  ▒   ▒▒ ░  ░▒ ░ ▒░  ▒   ▒▒ ░ ▒ ░▒░ ░    ▒ ░  ░▒ ░ ▒░  ░  ▒      ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░   ░ ░  ░  ░▒ ░ ▒░ \n" \
-"░  ░  ░    ░   ▒     ░░   ░   ░   ▒    ░  ░░ ░    ▒ ░  ░░   ░ ░           ░  ░  ░     ░     ░░   ░      ░░     ░     ░░   ░  \n" \
-"      ░        ░  ░   ░           ░  ░ ░  ░  ░    ░     ░     ░ ░               ░     ░  ░   ░           ░     ░  ░   ░      \n" \
-"                                                              ░                                         ░                   \r\n"
+"     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
+"   ▓██▒▓██ ▒ ██▒▒██▀ ▀█     ▒██    ▒ ▓█   ▀ ▓██ ▒ ██▒▓██░   █▒▓█   ▀ ▓██ ▒ ██▒ \n" \
+"   ▒██▒▓██ ░▄█ ▒▒▓█    ▄    ░ ▓██▄   ▒███   ▓██ ░▄█ ▒ ▓██  █▒░▒███   ▓██ ░▄█ ▒ \n" \
+"   ░██░▒██▀▀█▄  ▒▓▓▄ ▄██▒     ▒   ██▒▒▓█  ▄ ▒██▀▀█▄    ▒██ █░░▒▓█  ▄ ▒██▀▀█▄   \n" \
+"   ░██░░██▓ ▒██▒▒ ▓███▀ ░   ▒██████▒▒░▒████▒░██▓ ▒██▒   ▒▀█░  ░▒████▒░██▓ ▒██▒ \n" \
+"   ░▓  ░ ▒▓ ░▒▓░░ ░▒ ▒  ░   ▒ ▒▓▒ ▒ ░░░ ▒░ ░░ ▒▓ ░▒▓░   ░ ▐░  ░░ ▒░ ░░ ▒▓ ░▒▓░ \n" \
+"    ▒ ░  ░▒ ░ ▒░  ░  ▒      ░ ░▒  ░ ░ ░ ░  ░  ░▒ ░ ▒░   ░ ░░   ░ ░  ░  ░▒ ░ ▒░ \n" \
+"    ▒ ░  ░░   ░ ░           ░  ░  ░     ░     ░░   ░      ░░     ░     ░░   ░  \n" \
+"    ░     ░     ░ ░               ░     ░  ░   ░           ░     ░  ░   ░      \n" \
+"                                                              ░                                          ░                   \r\n"
 #define DIE "Wrong password:\n" \
 "██▄   ▄█ ▄███▄   \n" \
 "█  █  ██ █▀   ▀  \n" \
@@ -72,6 +78,7 @@ class Server : public AddressData
 {
 	public:
 		Server();
+		// Server(const std::string& aPort,const std::string& aPassword);
 		Server(const Server& copy);
 		Server(std::string port, std::string pass);
 		Server &operator=(const Server& copy);
@@ -80,22 +87,31 @@ class Server : public AddressData
 		bool	CreateServer(const std::string &port, const std::string &pass);
 
 	private:
-		size_t		client_count;
-		std::string password;
-		std::vector<Client> clients;
-		std::vector<struct pollfd> c_fd_queue;
-		std::vector<int> client_fds;
-		std::string raw_data;
-		std::string send_buffer;
-		std::map<std::string, std::vector<std::string> > command;
+		size_t						client_count;
+		std::string 				password;
+		std::list<Client> 		    clients;
+		std::vector<struct pollfd>	c_fd_queue;
+		std::vector<int> 			client_fds;
+		std::string 				raw_data;
+		std::string 				send_buffer;
+		Parse*						_data;
+		std::list<Channel>			_channels;
+		void						_setChannels();
+
+		//
+		// const std::string&	mPort;
+		// const std::string&	mPassword;
+		// std::map<std::string, std::vector<std::string> > command;
 
 		/* =============Server Functions============ */
 		void		KickClients(void);
 		void		OnServerLoop(void);
 		void		OnServerFdQueue(void);
 		void		CloseConnections(void);
-        bool        CheckDataValidity(void);
-		int			FindClient(int client_fd);
+		int			                FindClient(int client_fd);
+        std::list<Client>::iterator &GetClient(int client_fd);
+        bool        ProccessIncomingData(int client_fd);
+        bool        AcceptIncomingConnections(int socket_fd);
 		void		PreformServerCleanup(void);
 		void		CopySockData(int client_fd);
 		void		Authenticate(int client_fd);
@@ -104,17 +120,36 @@ class Server : public AddressData
 		void		ReadClientFd(int client_fd);
 		bool		JustConnected(int socketfd);
 		void		PopOutClientFd(int client_fd);
-        bool        CheckConnectDataValidity(int client_fd);
 		void		SendClientMessage(int client_fd);
-        bool        CheckLoginTimeout(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
-
+		bool        CheckDataValidity(void);
+		bool        CheckLoginTimeout(int client_fd);
+		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
 		// void		PONG(int client_fd);
+		
         void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
-        Parse       CreateCommandData(int client_fd, CommandType type);
+        void		CreateCommandData(int client_fd, CommandType type);
 		// void		FindCommand(int client_fd);
-		
+
+		// commands
+		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);
+		void		who();
+		void		nick();
+		void		join();
+		void		topic();
+		void		invite();
+		void		mode(); // (in progress)
+		void		quit(int cliet_fd);
+		void		privMsg();
+		void		kick();
+
+    class ClientQuitException : public std::exception {
+        public:
+            virtual const char* what() const throw() {
+                return "ClientQuitException";
+        }
+    };
 };

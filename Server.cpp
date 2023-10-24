@@ -6,14 +6,14 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/15 16:25:07 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/24 21:41:17 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Toolkit.hpp"
 #include "Client.hpp"
-
+#include "Parse.hpp"
 /* === Coplien's form ===*/
 Server::Server() : client_count(0)
 {
@@ -21,6 +21,8 @@ Server::Server() : client_count(0)
 	this->server_socket_fd = -1;
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
+	this->_setChannels();
+	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 
@@ -32,11 +34,14 @@ Server::Server(const Server& copy)
 	this->c_fd_queue = copy.c_fd_queue;
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
+	this->_setChannels();
+	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 Server::Server(std::string port, std::string pass) {
 	Server();
 	CreateServer(port, pass);
+	this->_setChannels();
 }
 
 Server &Server::operator=(const Server& copy)
@@ -140,7 +145,7 @@ void	 Server::CloseConnections(void) {
 */
 void	Server::PopOutClientFd(int client_fd) {
 	std::vector<int>::iterator it = client_fds.begin();
-	std::vector<Client>::iterator itc = clients.begin();
+	std::list<Client>::iterator itc = clients.begin();
 	std::vector<struct pollfd>::iterator itp = c_fd_queue.begin();
 	
 	while (it != client_fds.end()) {
@@ -148,21 +153,21 @@ void	Server::PopOutClientFd(int client_fd) {
 			client_fds.erase(it);
 			break ;
 		}
-		it++;
+		++it;
 	}
 	while (itc != clients.end()) {
 		if (itc->getSockID() == client_fd) {
 			clients.erase(itc);
 			break ;
 		}
-		itc++;
+		++itc;
 	}
 	while (itp != c_fd_queue.end()) {
 		if (itp->fd == client_fd) {
 			c_fd_queue.erase(itp);
 			break ;
 		}
-		itp++;
+		++itp;
 	}
 }
 
@@ -183,9 +188,16 @@ void	Server::DeleteClient(int client_fd) {
 /*
  - Copies socket data for each client, useful if you want to extract the ip later on
 */
-void		Server::CopySockData(int client_fd) {
-	this->clients.at(FindClient(client_fd)).client_sock_data = this->client_sock_data;
-	this->clients.at(FindClient(client_fd)).socket_data_size = this->socket_data_size;
+void	Server::CopySockData(int client_fd) {
+    std::list<Client>::iterator itc = clients.begin();
+
+    while (itc != clients.end()) {
+        if (itc->getSockID() == client_fd) {
+            itc->client_sock_data = this->client_sock_data;
+            itc->socket_data_size = this->socket_data_size;
+        }
+        ++itc;
+    }
 }
 
 /*
@@ -209,21 +221,30 @@ void	Server::InsertClient(int client_fd) {
 	- Finds the right client index from the poll queue since poll queue has the socket fd
 	  so the result might always be different by up to one index more than poll queue 
 */
-int	Server::FindClient(int client_fd) {
-	size_t i = 0;
-	while (i < clients.size()) {
-		if (clients.at(i).getSockID() == client_fd)
+int		Server::FindClient(int client_fd) {
+    size_t                      i = 0;
+	std::list<Client>::iterator it = clients.begin();
+	while (it != clients.end()) {
+		if (it->getSockID() == client_fd)
 			return i;
 		i++;
+        ++it;
 	}
 	return -1;
+}
+
+std::list<Client>::iterator &Server::GetClient(int client_fd) {
+    static std::list<Client>::iterator it;
+    it = clients.begin();
+    std::advance(it, FindClient(client_fd));
+    return it;
 }
 
 /*
  	- Reads the input given by a certain client and stores it in a special buffer accessible only
       for that client.
 */
-void Server::ReadClientFd(int client_fd) {
+void 	Server::ReadClientFd(int client_fd) {
     char buf[MAX_IRC_MSGLEN];
     _bzero(buf, MAX_IRC_MSGLEN);
     while (SRH) {
@@ -232,8 +253,10 @@ void Server::ReadClientFd(int client_fd) {
             buf[rb] = 0;
             raw_data += buf;
         } else if (rb <= 0) {
-            clients.at(FindClient(client_fd)).SetBuffer(raw_data);
-            std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
+            std::list<Client>::iterator it = clients.begin();
+            std::advance(it, FindClient(client_fd));
+            it->SetBuffer(raw_data);
+            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -244,10 +267,13 @@ void Server::ReadClientFd(int client_fd) {
 	  to all clients connected.
 */
 void	Server::SendClientMessage(int client_fd) {
-	if (!clients.at(FindClient(client_fd)).GetMessageBuffer().empty()) {
-		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length(), 0);
+    std::list<Client>::iterator it = clients.begin();
+    std::advance(it, FindClient(client_fd));
+
+	if (!it->GetMessageBuffer().empty()) {
+		send(client_fd, it->GetMessageBuffer().c_str(), it->GetMessageBuffer().length(), 0);
 	}
-    clients.at(FindClient(client_fd)).SetMessage("");
+    it->SetMessage("");
 	send_buffer.clear();
 }
 
@@ -255,14 +281,14 @@ void	Server::SendClientMessage(int client_fd) {
 	- Checks whether the client has just connected.
 */
 bool	Server::JustConnected(int socketfd) {
-	size_t i = 0;
+	std::list<Client>::iterator it = clients.begin();
 
 	if (!this->clients.empty()) {
-		while (i < this->clients.size()) {
-			if (socketfd == clients[i].getSockID()) {
-				return clients[i].JustConnectedStatus();
+		while (it != clients.end()) {
+			if (socketfd == it->getSockID()) {
+				return it->JustConnectedStatus();
 			}
-			i++;
+			++it;
 		}
 	}
 	return 0;
@@ -272,13 +298,13 @@ bool	Server::JustConnected(int socketfd) {
  - Kicks clients that should be kicked, there's a function to set client's kick status.
 */
 void	Server::KickClients(void) {
-	std::vector<Client>::iterator it = clients.begin();
+	std::list<Client>::iterator it = clients.begin();
 
 	while (it != clients.end()) {
 		if (it->ShouldBeKicked() == true) {
 			DeleteClient(it->getSockID());
 		}
-		it++;
+		++it;
 	}
 }
 /*
@@ -288,19 +314,24 @@ bool    Server::CheckDataValidity(void) {
     return (raw_data.find("\r\n") != std::string::npos);
 }
 
- bool   Server::CheckLoginTimeout(int client_fd) {
-    if (time(NULL) - clients.at(FindClient(client_fd)).GetConnectedDate() > MAX_TIMEOUT_DURATION)
+bool   Server::CheckLoginTimeout(int client_fd) {
+    if (_gettime() -  GetClient(client_fd)->GetLastUserActivity() > MAX_TIMEOUT_DURATION && GetClient(client_fd)->JustConnectedStatus()) {
+        std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
+        DeleteClient(client_fd);
         return true;
+    }
     return false;
 }
 
 bool    Server::CheckConnectDataValidity(int client_fd) {
-    char *temp = std::strtok(const_cast<char *>(clients.at(FindClient(client_fd)).GetBuffer().c_str()), "\r\n");
+    
+	std::string str = std::find(clients.begin(), clients.end(), client_fd)->GetBuffer();
+    char *temp = std::strtok(const_cast<char *>(str.c_str()), "\r\n");
     while (temp) {
         std::string tmp_str = temp, tmp_compare;
         std::stringstream tmp_stream;
         tmp_stream << tmp_str;
-        std::getline(tmp_stream, tmp_compare);
+        std::getline(tmp_stream, tmp_compare, ' ');
         if (tmp_compare == "PASS")
             return true;
         temp = std::strtok(NULL, "\r\n");
@@ -320,21 +351,14 @@ void	Server::Authenticate(int client_fd) {
     std::string hold_user;
     std::stringstream hold_nick_temp;
     std::string tmp[4];
+    std::list<Client>::iterator it = std::find(clients.begin(), clients.end(), client_fd);
 	size_t pos;
 	int index;
 
 	index = FindClient(client_fd);
-    // if (CheckLoginTimeout(client_fd)) {
-    //     if (temp_pass != password) {
-	// 	    std::cout << "Client Couldn't Authenticate in time." << std::endl;
-    //         std::cout << "Timeout at: " << time(NULL) - clients.at(index).GetConnectedDate() << std::endl;
-	// 		DeleteClient(client_fd);
-	// 		return ;
-	// 	}
-    // }
     if (CheckConnectDataValidity(client_fd)) {
 	    if (index >= 0) {
-	    	pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
+	    	pass = std::strtok(const_cast<char *>(std::find(clients.begin(), clients.end(), client_fd)->GetBuffer().c_str()), "\r\n");
 	    	while (pass != NULL) {
 	    		hold_pass = pass;
 	    		if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
@@ -350,22 +374,23 @@ void	Server::Authenticate(int client_fd) {
                     for (size_t i = 0; i < 4; i++) {
                         std::getline(hold_nick_temp, tmp[i], ' ');
                     }
-                    clients.at(FindClient(client_fd)).SetName(tmp[0]);
-                    clients.at(FindClient(client_fd)).SetHostname(tmp[1]);
-                    clients.at(FindClient(client_fd)).SetServername(tmp[2]);
+                    it->SetName(tmp[0]);
+                    it->SetHostname(tmp[1]);
+                    it->SetServername(tmp[2]);
                     tmp[3].erase(tmp[3].find(":", 0), 1);
-                    clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
+                    it->SetRealname(tmp[3]);
+            		it->SetJustConnectedStatus(false);
+					raw_data.clear();
     
-                    std::cout << "Name: " << clients.at(FindClient(client_fd)).GetNameName() << std::endl;
-                    std::cout << "HostName: " << clients.at(FindClient(client_fd)).GetHostname() << std::endl;
-                    std::cout << "ServerName: " << clients.at(FindClient(client_fd)).GetServername() << std::endl;
-                    std::cout << "RealName: " << clients.at(FindClient(client_fd)).GetRealname() << std::endl;
-                    clients.at(index).SetJustConnectedStatus(false);
+                    // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
+                    // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
+                    // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
+                    // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
                     
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
-            clients.at(index).SetNick(hold_user);
+            it->SetNick(hold_user);
 	    	if (temp_pass != password) {
 	    		std::cout << "PASSWORD DOES NOT MATCH " + temp_pass << std::endl;
 	    		DeleteClient(client_fd);
@@ -373,6 +398,42 @@ void	Server::Authenticate(int client_fd) {
 	    	}
 	    }
     }
+}
+
+bool        Server::ProccessIncomingData(int client_fd) {
+    ReadClientFd(client_fd);
+    if (CheckDataValidity()) {
+	    if (JustConnected(client_fd))
+	    	Authenticate(client_fd);
+		else {
+            try {
+	    	    Interpreter(client_fd);
+                raw_data.clear();
+            } catch (Server::ClientQuitException &e) {
+                DeleteClient(client_fd);
+                std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool    Server::AcceptIncomingConnections(int socket_fd) {
+    if (socket_fd == this->server_socket_fd) {
+        int new_client_fd = -1;
+        do {
+            new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	        if (new_client_fd > 0) {
+	        	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	        	InsertClient(new_client_fd);
+	        	std::cout << "Total Clients: " << clients.size() << std::endl;
+	        }
+        }
+        while (new_client_fd > 0);
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -387,37 +448,28 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
+	// std::list<Channel>::iterator channel_it;
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+			// channel_it = this->_channels.begin();
+			// for (; channel_it != this->_channels.end(); ++channel_it)
+			// 	channel_it->removeMember()
+			/* 
+				remove the disconnected ip from all channels 
+			*/
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
-            if (this->c_fd_queue[i].fd == this->server_socket_fd) {
-                int new_client_fd = -1;
-                do {
-                    new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	                if (new_client_fd > 0) {
-	                	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	                	InsertClient(new_client_fd);
-	                	std::cout << "Total Clients: " << clients.size() << std::endl;
-	                }
-                }
-                while (new_client_fd > 0);
-                continue;
-            }
-			ReadClientFd(this->c_fd_queue[i].fd);
-            if (CheckDataValidity()) {
-			    if (JustConnected(c_fd_queue[i].fd))
-			    	Authenticate(c_fd_queue[i].fd);
-			    Interpreter(c_fd_queue[i].fd);
-                raw_data.clear();
-            }
-		}
+            AcceptIncomingConnections(c_fd_queue[i].fd);
+            ProccessIncomingData(c_fd_queue[i].fd);
+        }
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
+            send_buffer.clear();
 		}
-		send_buffer.clear();
+        if (CheckLoginTimeout(c_fd_queue[i].fd))
+            return ;
 	}
 }
 
@@ -436,10 +488,6 @@ void	Server::OnServerLoop(void) {
 		OnServerFdQueue();
 	}
 }
-
-
-/* ========== INTERPRETER SECTION =========== */
-
 /**
  * Prints the command data from the given Parse object.
  *
@@ -450,9 +498,9 @@ void	Server::OnServerLoop(void) {
  * @throws None
  */
 void    Server::PrintCommandData(Parse &Data) {
-    std::vector<string> tmp = Data.getTarget();
-    std::vector<string>::iterator it = tmp.begin();
-
+    std::vector<std::string> tmp = Data.getTarget();
+    std::vector<std::string>::iterator it = tmp.begin();
+	std::cout << "raw buffer : " << Data.getClient().GetBuffer() << std::endl;
     std::cout << "- Command: " + Data.getCommand() << std::endl;
     std::cout << "- Targets: " << std::endl;
     while (it != tmp.end())
@@ -467,47 +515,48 @@ void    Server::PrintCommandData(Parse &Data) {
     std::cout << std::endl;
 }
 
-Parse   Server::CreateCommandData(int client_fd, CommandType type) {
-    Parse Data(clients.at(FindClient(client_fd)));
-    std::string str = clients.at(FindClient(client_fd)).GetBuffer();
-    std::string Accumulated_Message;
-    std::vector<string> args;
-    std::vector<string> targets;
+void  	Server::CreateCommandData(int client_fd, CommandType type) {
+    std::list<Client>::iterator xit = std::find(clients.begin(), clients.end(), client_fd);
+    std::string str = xit->GetBuffer();
+    std::string Accumulated_Message(str);
+    std::vector<std::string> args;
+    std::vector<std::string> targets;
     
-    if (!str.empty()) {
-        char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
+	str.replace(str.find("\r\n"), 2, "");
+    targets.clear();
+    char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
+    if (token)
+        this->_data->setCommand(token);
+    while (token) {
+        token = std::strtok(NULL, " ");
         if (token)
-            Data.setCommand(token);
-        while (token) {
-            token = std::strtok(NULL, " ");
-            if (token)
-                args.push_back(token);
-        }
-        std::vector<string>::iterator it = args.begin();
-        if (type == MSGINCLUDED) {
-            while (it != args.end()) {
-                size_t pos = it->find(":");
-                if (pos != std::string::npos) {
-                    it->erase(pos, 1);
-                    while (it != args.end())
-                        Accumulated_Message += *(it++);
-                    Data.setMessage(Accumulated_Message);
-                    break ;
-                } else
-                    targets.push_back(*it);
-                it++;
-            }
-            Data.setTarget(targets);
-            args.clear();
-        } else if (type == MSGNOTINCLUDED) {
-            Data.setArgs(args);
-            Data.setMessage("");
-            Data.setTarget(targets);
-            Data.setType(MSGNOTINCLUDED);
-        }
-        Data.setType(type);
+            args.push_back(token);
     }
-    return Data;
+    std::vector<std::string>::iterator it = args.begin();
+    if (type == MSGINCLUDED) {
+        while (it != args.end()) {
+            size_t pos = it->find(":");
+            if (pos != std::string::npos) {
+                it->erase(pos, 1);
+                pos = Accumulated_Message.find(":", 0);
+                if (pos != std::string::npos) {
+                    Accumulated_Message = Accumulated_Message.substr(pos + 1, Accumulated_Message.length() - (pos + 1));
+                }
+                this->_data->setMessage(Accumulated_Message);
+                break ;
+            } else
+                targets.push_back(*it);
+            it++;
+        }
+        this->_data->setTarget(targets);
+        args.clear();
+    } else if (type == MSGNOTINCLUDED) {
+        this->_data->setArgs(args);
+        this->_data->setMessage("");
+        this->_data->setTarget(targets);
+        this->_data->setType(MSGNOTINCLUDED);
+    }
+    this->_data->setType(type);
 }
 
 /*
@@ -515,19 +564,281 @@ Parse   Server::CreateCommandData(int client_fd, CommandType type) {
 	to parse more 
 
 */
-void	Server::Interpreter(int client_fd) {
-    if (clients.at(FindClient(client_fd)).GetBuffer().empty())
-        return ;
-    Parse Data(clients.at(FindClient(client_fd)));
-    if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
-        Data = CreateCommandData(client_fd, MSGINCLUDED);
-    } else {
-        Data = CreateCommandData(client_fd, MSGNOTINCLUDED);
+void	Server::Interpreter(int client_fd) 
+{
+    std::list<Client>::iterator xit = std::find(clients.begin(), clients.end(), client_fd);
+    this->_data = new Parse(*xit);
+	if (xit->GetBuffer().find(":", 0) != std::string::npos) {
+		CreateCommandData(client_fd, MSGINCLUDED);
+	} else {
+		CreateCommandData(client_fd, MSGNOTINCLUDED);
+	}
+	PrintCommandData(*(this->_data));
+	if (this->_data->getCommand() == "NICK")
+		this->nick();
+	else if (this->_data->getCommand() == "JOIN")
+		this->join();
+	else if (this->_data->getCommand() == "WHO")
+		this->who();
+	else if (this->_data->getCommand() == "MODE")
+		this->mode();
+	else if (this->_data->getCommand() == "PRIVMSG")
+		this->privMsg();
+	else if (this->_data->getCommand() == "TOPIC")
+		this->topic();
+	else if (this->_data->getCommand() == "INVITE")
+		this->invite();
+	else if (this->_data->getCommand() == "KICK")
+		this->kick();
+    else if (this->_data->getCommand() == "QUIT") {
+        throw(Server::ClientQuitException());
     }
-    PrintCommandData(Data);
-    clients.at(FindClient(client_fd)).SetBuffer("");
-    clients.at(FindClient(client_fd)).SetMessage("");
-    /*
-        - Function to execute what's inside the Parse Data
-    */
+	raw_data.clear();
+	xit->SetBuffer("");
 }
+
+void	Server::nick()
+{
+	Client&		client = this->_data->getClient();
+	std::string	nickname;
+	if (this->_data->getArgs().size() != 0)
+	{
+		std::string  nickname = this->_data->getArgs().at(0);
+		client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
+		client.SetNick(nickname);
+	}
+}
+
+void	Server::join()
+{
+	std::string 					channel_name;
+	std::string 					channel_password;						
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+
+	channel_name = this->_data->getArgs().at(0);
+	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "");
+	channel_it = std::find((*this)._channels.begin(), (*this)._channels.end(), channel_name);
+	if (channel_it != (*this)._channels.end())
+	{
+		if (channel_it->getHasPassword())
+		{
+			if (channel_it->getPassword() == channel_password)
+				channel_it->join(client);
+			else
+				client.SetMessage(_user_info(client, false) + ERR_BADCHANNELKEY(client.getName(), channel_it->getName()));
+		}
+		else
+			channel_it->join(client);
+	}
+	else
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+}
+
+void	Server::_setChannels()
+{
+	this->_channels.push_back(Channel("#yajallal", "yajallal"));
+	this->_channels.push_back(Channel("#mkhairou", "mkhairou"));
+	this->_channels.push_back(Channel("#hmeftah", "hmeftah"));
+	this->_channels.push_back(Channel("#random"));
+	this->_channels.push_back(Channel("#general"));
+}
+
+void	Server::who()
+{
+	
+	std::list<Channel>::iterator	channel_it;
+	std::string						message_to_send;
+	Client&							client = this->_data->getClient();
+	if ( this->_data->getArgs().size() > 0)
+	{
+		const std::string&			first_arg_type = this->_data->getArgs().at(0);
+		if (first_arg_type.at(0) == '#')
+		{
+			channel_it = std::find(this->_channels.begin(), this->_channels.end(), first_arg_type);
+			if (channel_it != this->_channels.end())
+				channel_it->who(client);
+			else
+				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
+		}
+	}
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+}
+
+void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
+{
+	std::string						modes = this->_data->getArgs().at(1);
+	bool							add_remove = true;
+	std::list<Client>::iterator	member_it;
+	std::string						mode_param = (this->_data->getArgs().size() == 3 ? this->_data->getArgs().at(2) : "");
+
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		if (modes.at(i) == '-')
+			add_remove = false;
+		else if (modes.at(i) == '+')
+			add_remove = true;
+		else if (std::strchr("itlk", modes.at(i)))
+		{
+			if (this->_data->getArgs().size() == 3)
+				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			else
+				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+		}
+		else if (modes.at(i) == 'o')
+		{
+			if (!mode_param.empty())
+			{
+				member_it = std::find(this->clients.begin(), this->clients.end(), mode_param);
+				if (member_it == this->clients.end())
+					client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param));
+				else
+					channel_it->memberMode(client, add_remove, 'o', *member_it);
+			}
+		}
+		else
+			ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
+	}
+}
+void	Server::mode()
+{
+	this->PrintCommandData(*(this->_data));   
+	Client&							client = this->_data->getClient();
+	const std::string&				target_name = this->_data->getArgs().at(0);
+	std::list<Channel>::iterator	channel_it;
+	if (target_name.at(0) == '#')
+	{
+		channel_it = std::find(this->_channels.begin(), this->_channels.end(), target_name);
+		if (channel_it == this->_channels.end())
+			client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
+		else
+		{
+			if (this->_data->getArgs().size() == 1)
+				channel_it->mode(client);
+			else
+				this->set_remove_mode(client, channel_it);	
+		}
+	}
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+}
+
+void	Server::privMsg()
+{
+	Client& 						client = this->_data->getClient();
+	size_t 							pos;
+	bool							send_to_operator;
+	bool							send_to_founder;
+	std::list<Channel>::iterator	channel_it;
+	std::list<Client>::iterator	client_it;
+	std::string						msg_to_send;
+	std::string						target;
+	if (this->_data->getTarget().size() == 0)
+		client.SetMessage(_user_info(client, false) + ERR_NORECIPIENT(client.getNick(), "PRIVMSG"));
+	else if (this->_data->getMessage().empty())
+			client.SetMessage(_user_info(client, false) + ERR_NOTEXTTOSEND(client.getNick()));
+	else
+	{
+		target = this->_data->getTarget().at(0);
+		pos = target.find('#');
+		send_to_operator = false;
+		send_to_founder = false;
+		if (pos != std::string::npos)
+		{
+			for (size_t i = 0; i < pos; i++)
+			{
+				if (target.at(i) == '@')
+				{
+					send_to_operator = true;
+					target.erase(i, 1);
+				}
+				else if (target.at(i) == '~')
+				{
+					send_to_founder = true;
+					target.erase(i, 1);
+				}
+			}
+			channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);	
+			if (channel_it == this->_channels.end())
+				client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
+			else
+			{
+				msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
+				if (send_to_operator)
+					channel_it->sendToOperators(client, msg_to_send);
+				else if(send_to_founder)
+					channel_it->sendToFounder(client, msg_to_send);
+				else 
+					channel_it->sendToAll(client, msg_to_send);
+			}
+		}
+		else
+		{
+			client_it = std::find(this->clients.begin(), this->clients.end(), target);
+			msg_to_send = ":" + client.getNick() + "!" + client.getName() + "@" + client.getHostname() + " PRIVMSG " + target + " :"+ this->_data->getMessage() + "\r\n";
+			if (client_it == this->clients.end())
+				client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
+			else
+				client_it->SetMessage(msg_to_send);
+		}
+	}
+	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+}
+
+
+void 	Server::topic()
+{
+	this->PrintCommandData(*this->_data);
+	Client&							client = this->_data->getClient();
+	std::string						target;
+	std::list<Channel>::iterator	channel_it;
+
+	target = this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0);
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);
+	if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target));
+	else
+		channel_it->topic(client, !this->_data->getMessage().empty(), this->_data->getMessage());
+}
+
+void	Server::invite()
+{
+	std::list<Client>::iterator	target_it;
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+	const std::string&				target = this->_data->getArgs().at(0);
+	const std::string&				channel = this->_data->getArgs().at(1);
+
+	target_it = std::find(this->clients.begin(), this->clients.end(), target);
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel);
+	if (target_it == this->clients.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
+	else if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel));
+	else
+		channel_it->invite(client, *target_it);
+}
+void	Server::kick()
+{
+	std::string						target_name;
+	std::string 					channel_name;
+	std::list<Client>::iterator	target_it;
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+	
+	channel_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0));
+	target_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(1) : this->_data->getTarget().at(1));
+	
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel_name);
+	target_it = std::find(this->clients.begin(), this->clients.end(), target_name);
+	if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+	else if (target_it == this->clients.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target_name));
+	else
+		channel_it->kick(client, *target_it, this->_data->getMessage());
+}
+
+/*-------------------- handle space in message ------------------------*/
+/*-------------------- check first that there is a falid mode ------------------------*/
+/*-------------------- remover memeber_prifixes function ------------------------*/
