@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 15:36:35 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 16:02:01 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -382,13 +382,6 @@ std::string		Channel::showUsers(Client& client) const
 	return (users);
 }
 
-std::string		Channel::_members_prefixes(const Member& member) const
-{
-	std::string prefixes;
-	prefixes += member.getFounderPriv() ? "~" : "";
-	prefixes += member.getOperatorPriv() ? "@" : "";
-	return (prefixes);
-}
 
 void		 	Channel::mode(Client &client)
 {

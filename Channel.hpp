@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 15:36:15 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 16:02:04 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,6 @@ class Channel
 		void				_set_topic(const std::string& t, std::string setterName);
 		void				_add_member(Client &client, bool role);
 		std::string			_get_time();
-		std::string			_members_prefixes(const Member& member) const;
 
 	public:
 		Channel(const std::string& name); // has_pass = false, 
