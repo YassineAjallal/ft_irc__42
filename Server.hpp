@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/24 21:42:14 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/25 11:58:49 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,7 +111,7 @@ class Server : public AddressData
 		int			                FindClient(int client_fd);
         std::list<Client>::iterator &GetClient(int client_fd);
         bool        ProccessIncomingData(int client_fd);
-        bool        AcceptIncomingConnections(int socket_fd);
+        bool        AcceptIncomingConnections();
 		void		PreformServerCleanup(void);
 		void		CopySockData(int client_fd);
 		void		Authenticate(int client_fd);
@@ -141,8 +141,7 @@ class Server : public AddressData
 		void		join();
 		void		topic();
 		void		invite();
-		void		mode(); // (in progress)
-		void		quit(int cliet_fd);
+		void		mode();
 		void		privMsg();
 		void		kick();
 

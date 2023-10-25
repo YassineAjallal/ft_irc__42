@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/23 12:29:53 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 13:08:44 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ _size(5),
 _has_password(false),
 _invite_only(false),
 _has_topic(false),
-_topic_priv(false),
+_topic_priv(true),
 _creation_time(time(NULL))
 {}
 
@@ -30,7 +30,7 @@ _size(5),
 _has_password(true),
 _invite_only(false),
 _has_topic(false),
-_topic_priv(false),
+_topic_priv(true),
 _password(password),
 _creation_time(time(NULL))
 {}
@@ -130,7 +130,6 @@ bool			Channel::operator!=(const std::string& c)
 
 bool			Channel::_on_channel(Client &client)
 {
-	// std::cout << ((std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end()) ? "Found":"Not Found") << std::endl;
 	return (std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end());
 }
 
@@ -142,11 +141,13 @@ void			Channel::sendToAll(Client &client, std::string msg)
 }
 void			Channel::_add_member(Client &client, bool role)
 {
-	this->_members.push_back(Member(client, role, role));
+	if (!this->_on_channel(client))
+		this->_members.push_back(Member(client, role, role));
 }
 
 void			Channel::removeMember(Client &client)
 {
+	if (this->_on_channel(client))
 		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
 }
 
@@ -259,7 +260,7 @@ void			Channel::channelMode(Client &client, bool add_remove, char mode, std::str
 		}
 		else if (mode == 't' && this->_topic_priv != add_remove)
 		{
-			this->_topic_priv = true;
+			this->_topic_priv = add_remove;
 			client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " "  + "\r\n");
 			this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " "  + "\r\n");
 		}
@@ -341,7 +342,7 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 	}
 	else
 	{
-		if (!this->_topic_priv)
+		if (!client_it->getOperatorPriv() && this->_topic_priv)
 			client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getName(), this->_name) + "\r\n");
 		else
 		{

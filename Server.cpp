@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/24 21:41:17 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/25 13:06:57 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -236,7 +236,11 @@ int		Server::FindClient(int client_fd) {
 std::list<Client>::iterator &Server::GetClient(int client_fd) {
     static std::list<Client>::iterator it;
     it = clients.begin();
-    std::advance(it, FindClient(client_fd));
+	int found = FindClient(client_fd);
+	// std::cout << "found Client at: " << found << std::endl;
+	if (found < 0)
+		return ((it = clients.end()));
+    std::advance(it, found);
     return it;
 }
 
@@ -315,11 +319,14 @@ bool    Server::CheckDataValidity(void) {
 }
 
 bool   Server::CheckLoginTimeout(int client_fd) {
-    if (_gettime() -  GetClient(client_fd)->GetLastUserActivity() > MAX_TIMEOUT_DURATION && GetClient(client_fd)->JustConnectedStatus()) {
-        std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
-        DeleteClient(client_fd);
-        return true;
-    }
+	std::list<Client>::iterator it = GetClient(client_fd);
+	if (it != clients.end()) {
+    	if (_gettime() -  it->GetLastUserActivity() > MAX_TIMEOUT_DURATION && it->JustConnectedStatus()) {
+    	    std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
+    	    DeleteClient(client_fd);
+    	    return true;
+    	}
+	}
     return false;
 }
 
@@ -410,6 +417,11 @@ bool        Server::ProccessIncomingData(int client_fd) {
 	    	    Interpreter(client_fd);
                 raw_data.clear();
             } catch (Server::ClientQuitException &e) {
+				std::list<Channel>::iterator channel_it;
+				channel_it = this->_channels.begin();
+				Client& client = *this->GetClient(client_fd);
+				for (; channel_it != this->_channels.end(); ++channel_it)
+					channel_it->removeMember(client);
                 DeleteClient(client_fd);
                 std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
                 return true;
@@ -419,20 +431,17 @@ bool        Server::ProccessIncomingData(int client_fd) {
     return false;
 }
 
-bool    Server::AcceptIncomingConnections(int socket_fd) {
-    if (socket_fd == this->server_socket_fd) {
-        int new_client_fd = -1;
-        do {
-            new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	        if (new_client_fd > 0) {
-	        	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	        	InsertClient(new_client_fd);
-	        	std::cout << "Total Clients: " << clients.size() << std::endl;
-	        }
-        }
-        while (new_client_fd > 0);
-        return true;
+bool    Server::AcceptIncomingConnections(void) {
+    int new_client_fd = -1;
+    do {
+        new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	    if (new_client_fd > 0) {
+	    	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	    	InsertClient(new_client_fd);
+	    	std::cout << "Total Clients: " << clients.size() << std::endl;
+	    }
     }
+    while (new_client_fd > 0);
     return false;
 }
 
@@ -448,28 +457,30 @@ bool    Server::AcceptIncomingConnections(int socket_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
-	// std::list<Channel>::iterator channel_it;
+	std::list<Channel>::iterator channel_it;
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-			// channel_it = this->_channels.begin();
-			// for (; channel_it != this->_channels.end(); ++channel_it)
-			// 	channel_it->removeMember()
-			/* 
-				remove the disconnected ip from all channels 
-			*/
+			channel_it = this->_channels.begin();
+			Client& client = *this->GetClient(c_fd_queue[i].fd);
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				channel_it->removeMember(client);
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
-            AcceptIncomingConnections(c_fd_queue[i].fd);
-            ProccessIncomingData(c_fd_queue[i].fd);
+            if (this->c_fd_queue[i].fd == this->server_socket_fd) {
+				AcceptIncomingConnections();
+				continue ;
+			}
+        	if (ProccessIncomingData(c_fd_queue[i].fd))
+				return ;
         }
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
             send_buffer.clear();
 		}
-        if (CheckLoginTimeout(c_fd_queue[i].fd))
-            return ;
+        // if (CheckLoginTimeout(c_fd_queue[i].fd))
+        //     return ;
 	}
 }
 
@@ -483,6 +494,8 @@ void	Server::OnServerFdQueue(void) {
 void	Server::OnServerLoop(void) {
 	while (SRH) {
 	int 	poll_num = poll(&this->c_fd_queue[0], this->c_fd_queue.size(), 0);
+
+	AcceptIncomingConnections();
 
 	if (poll_num > 0)
 		OnServerFdQueue();
