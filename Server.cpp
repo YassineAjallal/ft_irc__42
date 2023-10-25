@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 14:57:21 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 16:26:04 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -346,6 +346,25 @@ bool    Server::CheckConnectDataValidity(int client_fd) {
     return false;
 }
 
+int    Server::CheckValidNick(std::string const &name) {
+    if (name.length() < 1)
+        return -1;
+    if (name[0] == '#' || (name[0] == '&' && name[1] == '#') || (name[0] == '#' && name[1] == '&'))
+        return 0;
+    return 1;
+}
+
+void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
+    Parse Data(*GetClient(client_fd));
+    std::vector<std::string> temp_vec;
+    
+    Data.setCommand(buf.substr(pos + 5, buf.length()));
+    if (!name.empty())
+        temp_vec.push_back(name);
+    Data.setArgs(temp_vec);
+    this->nick();
+}
+
 /*
  - Authenticates the client.
  - If the client fails authentication check, that same client will be kicked.
@@ -374,6 +393,9 @@ void	Server::Authenticate(int client_fd) {
                 else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
                     hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
                     std::getline(hold_nick_temp, hold_user, ' ');
+
+                    SetNickWrapper(client_fd, hold_user, hold_pass, pos);
+
                 }
                 else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
                     hold_nick_temp.clear();
@@ -391,9 +413,8 @@ void	Server::Authenticate(int client_fd) {
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
-            it->SetNick(hold_user);
+            //it->SetNick(hold_user);
 	    	if (temp_pass != password) {
-	    		std::cout << "PASSWORD DOES NOT MATCH " + temp_pass << std::endl;
 	    		DeleteClient(client_fd);
 	    		return ;
 	    	}

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 11:58:49 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 16:25:48 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,9 @@ class Server : public AddressData
 		void		SendClientMessage(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
+        void        SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos);
 		bool        CheckDataValidity(void);
+        int         CheckValidNick(std::string const &name);
 		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
