@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 13:06:57 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 14:57:21 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -388,12 +388,6 @@ void	Server::Authenticate(int client_fd) {
                     it->SetRealname(tmp[3]);
             		it->SetJustConnectedStatus(false);
 					raw_data.clear();
-    
-                    // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
-                    // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
-                    // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
-                    // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
-                    
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
@@ -586,7 +580,7 @@ void	Server::Interpreter(int client_fd)
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	PrintCommandData(*(this->_data));
+	// PrintCommandData(*(this->_data));
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -646,7 +640,7 @@ void	Server::join()
 	}
 	else
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -676,7 +670,7 @@ void	Server::who()
 				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
@@ -716,7 +710,7 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 }
 void	Server::mode()
 {
-	this->PrintCommandData(*(this->_data));   
+	// this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
 	const std::string&				target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
@@ -733,7 +727,7 @@ void	Server::mode()
 				this->set_remove_mode(client, channel_it);	
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::privMsg()
@@ -795,13 +789,13 @@ void	Server::privMsg()
 				client_it->SetMessage(msg_to_send);
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 
 void 	Server::topic()
 {
-	this->PrintCommandData(*this->_data);
+	// this->PrintCommandData(*this->_data);
 	Client&							client = this->_data->getClient();
 	std::string						target;
 	std::list<Channel>::iterator	channel_it;
@@ -855,3 +849,8 @@ void	Server::kick()
 /*-------------------- handle space in message ------------------------*/
 /*-------------------- check first that there is a falid mode ------------------------*/
 /*-------------------- remover memeber_prifixes function ------------------------*/
+
+/*--------------------- parser mode -------------------*/
+/*--------------------- remove from invited when kicking ----------------------------*/
+/*--------------------- the meaning of * in join command ---------------------------*/
+/*--------------------- code the user command -------------------------------------*/

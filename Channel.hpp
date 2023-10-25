@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/22 10:27:41 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 14:00:45 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@
 #define ERR_INVITEONLYCHAN(client, channel) 									("473 " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 #define	ERR_KEYSET(client, channel)												("467 " + client + " " + channel + " :Channel key already set\r\n")
 #define RPL_NOTOPIC(client, channel) 											("331 " + client + " " + channel + " :No topic is set\r\n")
-#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + ":" + topic + "\r\n")
+#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + " :" + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) 							("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) 												(prefix + nick + " ")
 #define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list.\r\n")
