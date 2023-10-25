@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 16:25:48 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/25 16:43:13 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,9 @@
 #define	ERR_NOSUCHNICK(client, nickname)	("401 " + client + " " + nickname + " :No such nick\r\n")
 #define ERR_NORECIPIENT(client, command)	("411 " + client + " :No recipient given (" + command + ")\r\n")
 #define ERR_NOTEXTTOSEND(client)			("412 " + client + " :No text to send\r\n")
+#define ERR_NONICKNAMEGIVEN(client)			("431 " + client + " :No nickname given\r\n")
+#define ERR_ERRONEUSNICKNAME(client, nick)	("432 " + client + " " + nick + " :Erroneus nickname\r\n")
+#define ERR_NICKNAMEINUSE(client, nick)		("433 " + client + " " + nick + " :Nickname is already in use\r\n")
 
 #define INTRO "Welcome to:\n" \
 "     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
@@ -146,6 +149,7 @@ class Server : public AddressData
 		void		mode();
 		void		privMsg();
 		void		kick();
+		void		user();
 
     class ClientQuitException : public std::exception {
         public:

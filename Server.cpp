@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 16:26:04 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/25 16:42:46 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -628,13 +628,31 @@ void	Server::Interpreter(int client_fd)
 void	Server::nick()
 {
 	Client&		client = this->_data->getClient();
+	std::list<Client>::iterator client_it;
 	std::string	nickname;
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-		client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
-		client.SetNick(nickname);
+
+		/*
+			add code here to check if its a valid nickname
+		*/
+		client_it = std::find(this->clients.begin(), this->clients.end(), nickname);
+		if (client_it != this->clients.end() && nickname != client.getNick())
+			client.SetMessage(_user_info(client, false) + ERR_NICKNAMEINUSE(client.getNick(), nickname));
+		else if (nickname != client.getNick())
+		{
+			client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
+			std::list<Channel>::iterator channel_it;
+			channel_it = this->_channels.begin();
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				if (channel_it->onChannel(client))
+					channel_it->sendToAll(client, _user_info(client, true) + "NICK :" + nickname + "\r\n");
+			client.SetNick(nickname);
+		}
 	}
+	else
+		client.SetMessage(_user_info(client, false) + ERR_NONICKNAMEGIVEN(client.getNick()));
 }
 
 void	Server::join()
@@ -867,11 +885,16 @@ void	Server::kick()
 		channel_it->kick(client, *target_it, this->_data->getMessage());
 }
 
-/*-------------------- handle space in message ------------------------*/
-/*-------------------- check first that there is a falid mode ------------------------*/
+void	Server::user()
+{
+	
+}
+
 /*-------------------- remover memeber_prifixes function ------------------------*/
 
 /*--------------------- parser mode -------------------*/
 /*--------------------- remove from invited when kicking ----------------------------*/
 /*--------------------- the meaning of * in join command ---------------------------*/
 /*--------------------- code the user command -------------------------------------*/
+/*------------------------ check server connections --------------------------------*/
+/*------------------------- why hexchat have a problem when send NICK  ---------------------------------*/
