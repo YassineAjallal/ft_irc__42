@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 14:03:30 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 15:36:35 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,7 +128,7 @@ bool			Channel::operator!=(const std::string& c)
 	return (this->_name != c);
 }
 
-bool			Channel::_on_channel(Client &client)
+bool			Channel::onChannel(Client &client)
 {
 	return (std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end());
 }
@@ -141,13 +141,13 @@ void			Channel::sendToAll(Client &client, std::string msg)
 }
 void			Channel::_add_member(Client &client, bool role)
 {
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		this->_members.push_back(Member(client, role, role));
 }
 
 void			Channel::removeMember(Client &client)
 {
-	if (this->_on_channel(client))
+	if (this->onChannel(client))
 		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
 }
 
@@ -182,7 +182,7 @@ void 			Channel::join(Client &client)
 
 void 			Channel::part(Client &client, std::string reason)
 {
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n");
 	else
 	{
@@ -207,14 +207,14 @@ std::string		Channel::_get_time()
 void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 {
 	std::vector<Member>::iterator it;
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name));
 	else
 	{
 		it = std::find(this->_members.begin(), this->_members.end(), client);
 		if (!it->getOperatorPriv())
 			client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name));
-		else if (!this->_on_channel(kicked))
+		else if (!this->onChannel(kicked))
 			client.SetMessage(_user_info(client, false) + ERR_USERNOTINCHANNEL(client.getNick(), kicked.getNick(), this->_name));
 		else
 		{
@@ -233,7 +233,7 @@ void			Channel::channelMode(Client &client, bool add_remove, char mode, std::str
 	char	sign  = (add_remove ? '+' : '-');
 
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n");
 	else if (!client_it->getOperatorPriv())
 		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name) + "\r\n");
@@ -286,7 +286,7 @@ void			Channel::memberMode(Client &client, bool add_remove, char mode, Client& m
 
 	member_it = std::find(this->_members.begin(), this->_members.end(), member);
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n");
 	else if (!client_it->getOperatorPriv())
 		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name) + "\r\n");
@@ -310,7 +310,7 @@ void			Channel::invite(Client& client, Client &invited)
 
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	invited_it = std::find(this->_members.begin(), this->_members.end(), invited);
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name));
 	else if (this->_invite_only && !client_it->getOperatorPriv())
 		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name));
@@ -328,7 +328,7 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 {
 	std::vector<Member>::iterator client_it;
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
-	if (!this->_on_channel(client))
+	if (!this->onChannel(client))
 		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name));
 	else if (!topic_exist)
 	{

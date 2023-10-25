@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 14:00:45 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 15:36:15 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,6 @@ class Channel
 		std::vector<Client>	_invited;
 		std::vector<Member>	_members;
 		void				_set_topic(const std::string& t, std::string setterName);
-		bool				_on_channel(Client &client);
 		void				_add_member(Client &client, bool role);
 		std::string			_get_time();
 		std::string			_members_prefixes(const Member& member) const;
@@ -98,6 +97,7 @@ class Channel
 		void				setTopicTime(const std::string& tt);
 		void				setInviteOnly(bool b);
 
+		bool				onChannel(Client &client);
 		void 				join(Client &client);
 		void 				part(Client &client, std::string reason);
 		void				kick(Client &client, Client &kicked, std::string reason);
