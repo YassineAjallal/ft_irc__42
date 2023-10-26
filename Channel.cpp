@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/26 13:37:20 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/26 13:59:16 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -147,11 +147,12 @@ void			Channel::_add_member(Client &client, bool role)
 
 void			Channel::removeMember(Client &client)
 {
-	if (this->onChannel(client))
-	{
-		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
+	std::vector<Client>::iterator invited_it;
+	invited_it = std::find(this->_invited.begin(), this->_invited.end(), client);
+	if (invited_it != this->_invited.end())
 		this->_invited.erase(std::remove(this->_invited.begin(), this->_invited.end(), client));
-	}
+	if (this->onChannel(client))
+		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
 }
 
 void 			Channel::join(Client &client)
