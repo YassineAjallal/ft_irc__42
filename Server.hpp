@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/25 16:43:13 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/26 10:50:10 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,7 @@
 #define ERR_NONICKNAMEGIVEN(client)			("431 " + client + " :No nickname given\r\n")
 #define ERR_ERRONEUSNICKNAME(client, nick)	("432 " + client + " " + nick + " :Erroneus nickname\r\n")
 #define ERR_NICKNAMEINUSE(client, nick)		("433 " + client + " " + nick + " :Nickname is already in use\r\n")
+#define ERR_ALREADYREGISTERED(client)		("462 " + client + " :You may not reregister\r\n")
 
 #define INTRO "Welcome to:\n" \
 "     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
