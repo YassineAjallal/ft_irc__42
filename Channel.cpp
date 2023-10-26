@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 16:02:01 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/26 13:37:20 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,7 +148,10 @@ void			Channel::_add_member(Client &client, bool role)
 void			Channel::removeMember(Client &client)
 {
 	if (this->onChannel(client))
+	{
 		this->_members.erase(std::remove(this->_members.begin(), this->_members.end(), client));
+		this->_invited.erase(std::remove(this->_invited.begin(), this->_invited.end(), client));
+	}
 }
 
 void 			Channel::join(Client &client)
@@ -227,80 +230,85 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 	}
 }
 
-void			Channel::channelMode(Client &client, bool add_remove, char mode, std::string param)
+std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remove, char mode, std::string param)
 {
 	std::vector<Member>::iterator client_it;
+	std::pair<int, std::string> hold_message_return;
 	char	sign  = (add_remove ? '+' : '-');
+	std::string send_to_client;
 
+	hold_message_return.first = 0;
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->onChannel(client))
-		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n");
+		send_to_client = _user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name);
 	else if (!client_it->getOperatorPriv())
-		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name) + "\r\n");
+		send_to_client = _user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name);
 	else
 	{
 		if (mode == 'i' && this->_invite_only != add_remove)
 		{
 			this->_invite_only = add_remove;
-			client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign +mode + " "  + "\r\n");
-			this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " "  + "\r\n");
+			hold_message_return.first = 1;
 		}
 		else if (mode == 'l' && atoi(param.c_str()) != this->_size)
 		{
 			if (param.empty())
-				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "l"));
+				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "l");
 			else
 			{
 				this->_size = (add_remove ? atoi(param.c_str()) : -1);
-				client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + param + "\r\n");
-				this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + param + "\r\n");
+				hold_message_return.first = 1;
 			}
 		}
 		else if (mode == 't' && this->_topic_priv != add_remove)
 		{
 			this->_topic_priv = add_remove;
-			client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " "  + "\r\n");
-			this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " "  + "\r\n");
+			hold_message_return.first = 1;
 		}
-		else
+		else if (mode == 'k' && this->_has_password != add_remove)
 		{
 			if (param.empty())
-				client.SetMessage(_user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "k"));
+				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "k");
 			else if (add_remove && this->_has_password)
-				client.SetMessage(_user_info(client, false) + ERR_KEYSET(client.getNick(), this->_name));
+				send_to_client = _user_info(client, false) + ERR_KEYSET(client.getNick(), this->_name);
 			else
 			{
 				this->setPassword(param, add_remove);
-				client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + param + "\r\n");
-			this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + param + "\r\n");
+				hold_message_return.first = 1;
 			}
 		}
 	}
+	hold_message_return.second = send_to_client;
+	return (hold_message_return);
 }
 
-void			Channel::memberMode(Client &client, bool add_remove, char mode, Client& member)
+std::pair<int, std::string>			Channel::memberMode(Client &client, bool add_remove, char mode, Client& member)
 {
-	std::vector<Member>::iterator member_it;
-	std::vector<Member>::iterator client_it;
-	char	sign  = (add_remove ? '+' : '-');
+	std::vector<Member>::iterator	member_it;
+	std::vector<Member>::iterator	client_it;
+	std::pair<int, std::string>		hold_message_return;
+	std::string 					send_to_client;
+
+	hold_message_return.first = 0;
 
 	member_it = std::find(this->_members.begin(), this->_members.end(), member);
 	client_it = std::find(this->_members.begin(), this->_members.end(), client);
 	if (!this->onChannel(client))
-		client.SetMessage(_user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n");
+		send_to_client = _user_info(client, false) + ERR_NOTONCHANNEL(client.getNick(), this->_name) + "\r\n";
 	else if (!client_it->getOperatorPriv())
-		client.SetMessage(_user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name) + "\r\n");
+		send_to_client = _user_info(client, false) + ERR_CHANOPRIVSNEEDED(client.getNick(), this->_name) + "\r\n";
 	else
 	{
 		if (member_it == this->_members.end())
-			client.SetMessage(_user_info(client, false) + ERR_USERNOTINCHANNEL(client.getNick(), member.getNick(), this->_name) + "\r\n");
+			send_to_client = _user_info(client, false) + ERR_USERNOTINCHANNEL(client.getNick(), member.getNick(), this->_name) + "\r\n";
 		else if (mode == 'o')
 		{
 			member_it->setOperatorPriv(add_remove);
-			client.SetMessage(_user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + member.getNick() + "\r\n");
-			this->sendToAll(client, _user_info(client, true) + "MODE " + this->_name + " " + sign + mode + " " + member.getNick() + "\r\n");
+			hold_message_return.first = 1;
 		}
 	}
+	hold_message_return.second = send_to_client;
+	return (hold_message_return);
 }
 
 void			Channel::invite(Client& client, Client &invited)
@@ -394,6 +402,7 @@ void		 	Channel::mode(Client &client)
 	ss >> creation_time;
 	modes += (this->_has_password ? "k" : "");
 	modes += (this->_invite_only ? "i" : "");
+	modes += (this->_topic_priv ? "t" : "");
 	msg_to_send += ":" + client.getServername() + " ";
 	msg_to_send += RPL_CHANNELMODEIS(client.getNick(), this->_name, modes);
 	msg_to_send += ":" + client.getServername() + " ";

@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/26 10:51:44 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/26 13:49:08 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -258,7 +258,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -653,12 +653,10 @@ void	Server::nick()
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-
-		/*
-			add code here to check if its a valid nickname
-		*/
 		client_it = std::find(this->clients.begin(), this->clients.end(), nickname);
-		if (client_it != this->clients.end() && nickname != client.getNick())
+		if (!this->CheckValidNick(nickname))
+			client.SetMessage(_user_info(client, false) + ERR_ERRONEUSNICKNAME(client.getNick(), nickname));
+		else if (client_it != this->clients.end() && nickname != client.getNick())
 			client.SetMessage(_user_info(client, false) + ERR_NICKNAMEINUSE(client.getNick(), nickname));
 		else if (nickname != client.getNick())
 		{
@@ -735,22 +733,36 @@ void	Server::who()
 void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
 {
 	std::string						modes = this->_data->getArgs().at(1);
+	std::pair<int, std::string>		hold_message_return;
+	std::string						used_modes;
+	std::string						message_to_send;
 	bool							add_remove = true;
-	std::list<Client>::iterator	member_it;
-	std::string						mode_param = (this->_data->getArgs().size() == 3 ? this->_data->getArgs().at(2) : "");
+	std::list<Client>::iterator		member_it;
+	std::string						mode_param = (this->_data->getArgs().size() >= 3 ? this->_data->getArgs().at(2) : "");
+	bool							is_mode_used = false; // check if a mode is seted/removed 
 
 	for (size_t i = 0; i < modes.size(); i++)
 	{
 		if (modes.at(i) == '-')
+		{
+			used_modes += (add_remove == false ? "" : "-");
 			add_remove = false;
+		}
 		else if (modes.at(i) == '+')
+		{
+			used_modes += "+";
 			add_remove = true;
+		}
 		else if (std::strchr("itlk", modes.at(i)))
 		{
-			if (this->_data->getArgs().size() == 3)
-				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			if (hold_message_return.first == 0)
+				message_to_send += hold_message_return.second;
 			else
-				channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			{
+				is_mode_used = true;
+				used_modes += modes.at(i);
+			}
 		}
 		else if (modes.at(i) == 'o')
 		{
@@ -758,14 +770,26 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 			{
 				member_it = std::find(this->clients.begin(), this->clients.end(), mode_param);
 				if (member_it == this->clients.end())
-					client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param));
+					message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param);
 				else
-					channel_it->memberMode(client, add_remove, 'o', *member_it);
+				{
+					hold_message_return = channel_it->memberMode(client, add_remove, 'o', *member_it);
+					if (hold_message_return.first == 0)
+						message_to_send += hold_message_return.second;
+					else
+					{
+						is_mode_used = true;
+						used_modes += modes.at(i);
+					}
+				}
 			}
 		}
 		else
-			ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
+			message_to_send += _user_info(client, false) + ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
 	}
+	message_to_send += (is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + mode_param +"\r\n" : "");
+	client.SetMessage(message_to_send);
+	channel_it->sendToAll(client, _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + "\r\n");
 }
 void	Server::mode()
 {
@@ -911,10 +935,7 @@ void	Server::user()
 	client.SetMessage(_user_info(client, false) + ERR_ALREADYREGISTERED(client.getNick()));
 }
 
-/*-------------------- remover memeber_prifixes function ------------------------*/
 
-/*--------------------- parser mode -------------------*/
-/*--------------------- remove from invited when kicking ----------------------------*/
 /*------------------------ check server connections --------------------------------*/
 /*------------------------- why hexchat have a problem when send NICK  ---------------------------------*/
-/*-------------------- add +t to channel modes ---------------------------*/
+/*------------------------ uncknown segv -----------------------------------*/
