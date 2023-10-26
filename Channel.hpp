@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/25 16:02:04 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/26 13:32:45 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,41 +79,41 @@ class Channel
 		~Channel();
 		
 		// getters
-		std::string 		getName() const;
-		std::string 		getPassword() const;
-		std::string			getTopic() const;
-		bool				getHasPassword() const;
-		bool				getInviteOnly() const;
-		bool				getTopicPriv() const;
-		size_t				getSize() const;
-
-		// setters
-		void				setPassword(const std::string& new_password, bool has_password);
-		void				setHasPassword(bool b);
-		void				setTopicPriv(bool b);
-		void				setSize(const int& s);
-		void				setTopicSetter(const std::string& ts);
-		void				setTopicTime(const std::string& tt);
-		void				setInviteOnly(bool b);
-
-		bool				onChannel(Client &client);
-		void 				join(Client &client);
-		void 				part(Client &client, std::string reason);
-		void				kick(Client &client, Client &kicked, std::string reason);
-		void				topic(Client &client, bool topic_exist, std::string topic);
-		void				who(Client &client); // execute when a client send " WHO #channel_name "
-		void				invite(Client& client, Client &invited);
-		void				sendToAll(Client &client, std::string msg);
-		void				sendToOperators(Client &client, std::string msg);
-		void				sendToFounder(Client &client, std::string msg);
-		std::string			showUsers(Client& client) const;
-		void		 		mode(Client &client);
-		void				memberMode(Client &client, bool add_remove, char mode, Client& member);
-		void				channelMode(Client &client, bool add_remove, char mode, std::string param);
-		void				removeMember(Client &client);
+		std::string 				getName() const;
+		std::string 				getPassword() const;
+		std::string					getTopic() const;
+		bool						getHasPassword() const;
+		bool						getInviteOnly() const;
+		bool						getTopicPriv() const;
+		size_t						getSize() const;
+		
+		// setters		
+		void						setPassword(const std::string& new_password, bool has_password);
+		void						setHasPassword(bool b);
+		void						setTopicPriv(bool b);
+		void						setSize(const int& s);
+		void						setTopicSetter(const std::string& ts);
+		void						setTopicTime(const std::string& tt);
+		void						setInviteOnly(bool b);
+		
+		bool						onChannel(Client &client);
+		void 						join(Client &client);
+		void 						part(Client &client, std::string reason);
+		void						kick(Client &client, Client &kicked, std::string reason);
+		void						topic(Client &client, bool topic_exist, std::string topic);
+		void						who(Client &client); // execute when a client send " WHO #channel_name "
+		void						invite(Client& client, Client &invited);
+		void						sendToAll(Client &client, std::string msg);
+		void						sendToOperators(Client &client, std::string msg);
+		void						sendToFounder(Client &client, std::string msg);
+		std::string					showUsers(Client& client) const;
+		void		 				mode(Client &client);
+		std::pair<int, std::string>	memberMode(Client &client, bool add_remove, char mode, Client& member);
+		std::pair<int, std::string>	channelMode(Client &client, bool add_remove, char mode, std::string param);
+		void						removeMember(Client &client);
 	
-		bool				operator==(const std::string& c);
-		bool				operator!=(const std::string& c);
+		bool						operator==(const std::string& c);
+		bool						operator!=(const std::string& c);
 
 };
 

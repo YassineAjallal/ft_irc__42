@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/24 21:40:52 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/26 14:03:51 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,11 +26,6 @@
 	
 	- Make sure to check if the port
 	doesn't contain invalid characters.
-
-	- Make sure to initialize all variables
-	inside Server Class.
-
-	- Make sure to check password for spaces
 */
 
 Channel& test_channel(std::vector<Client>& clients)
