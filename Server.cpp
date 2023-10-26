@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/24 21:41:17 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/26 10:51:44 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@ Server::Server() : client_count(0)
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
 	this->_setChannels();
-	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 
@@ -35,7 +34,6 @@ Server::Server(const Server& copy)
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
 	this->_setChannels();
-	// this->clients.reserve(MAX_IRC_CONNECTIONS);
 }
 
 Server::Server(std::string port, std::string pass) {
@@ -236,7 +234,11 @@ int		Server::FindClient(int client_fd) {
 std::list<Client>::iterator &Server::GetClient(int client_fd) {
     static std::list<Client>::iterator it;
     it = clients.begin();
-    std::advance(it, FindClient(client_fd));
+	int found = FindClient(client_fd);
+	// std::cout << "found Client at: " << found << std::endl;
+	if (found < 0)
+		return ((it = clients.end()));
+    std::advance(it, found);
     return it;
 }
 
@@ -256,7 +258,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -315,11 +317,14 @@ bool    Server::CheckDataValidity(void) {
 }
 
 bool   Server::CheckLoginTimeout(int client_fd) {
-    if (_gettime() -  GetClient(client_fd)->GetLastUserActivity() > MAX_TIMEOUT_DURATION && GetClient(client_fd)->JustConnectedStatus()) {
-        std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
-        DeleteClient(client_fd);
-        return true;
-    }
+	std::list<Client>::iterator it = GetClient(client_fd);
+	if (it != clients.end()) {
+    	if (_gettime() -  it->GetLastUserActivity() > MAX_TIMEOUT_DURATION && it->JustConnectedStatus()) {
+    	    std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
+    	    DeleteClient(client_fd);
+    	    return true;
+    	}
+	}
     return false;
 }
 
@@ -337,6 +342,27 @@ bool    Server::CheckConnectDataValidity(int client_fd) {
         temp = std::strtok(NULL, "\r\n");
     }
     return false;
+}
+
+int    Server::CheckValidNick(std::string const &name) {
+    if (name.length() < 1)
+        return -1;
+    if (name[0] == '#' || (name[0] == '&' && name[1] == '#') || (name[0] == '#' && name[1] == '&'))
+        return 0;
+    return 1;
+}
+
+void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
+    Parse Data(*GetClient(client_fd));
+	this->_data = &Data;
+	std::cout << GetClient(client_fd)->getSockID() << std::endl;
+    std::vector<std::string> temp_vec;
+    
+    Data.setCommand(buf.substr(pos + 5, buf.length()));
+    if (!name.empty())
+        temp_vec.push_back(name);
+    Data.setArgs(temp_vec);
+    this->nick();
 }
 
 /*
@@ -361,38 +387,52 @@ void	Server::Authenticate(int client_fd) {
 	    	pass = std::strtok(const_cast<char *>(std::find(clients.begin(), clients.end(), client_fd)->GetBuffer().c_str()), "\r\n");
 	    	while (pass != NULL) {
 	    		hold_pass = pass;
+				
+				int start = hold_pass.length() >= 5 ? 5 : hold_pass.length();
 	    		if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
-	    			temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
+	    			temp_pass = hold_pass.substr(pos + start, hold_pass.length());
 	    		}
                 else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length());
                     std::getline(hold_nick_temp, hold_user, ' ');
+                    SetNickWrapper(client_fd, hold_user, hold_pass, pos);
+
                 }
                 else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
-                    hold_nick_temp.clear();
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
-                    for (size_t i = 0; i < 4; i++) {
-                        std::getline(hold_nick_temp, tmp[i], ' ');
-                    }
-                    it->SetName(tmp[0]);
-                    it->SetHostname(tmp[1]);
-                    it->SetServername(tmp[2]);
-                    tmp[3].erase(tmp[3].find(":", 0), 1);
-                    it->SetRealname(tmp[3]);
-            		it->SetJustConnectedStatus(false);
-					raw_data.clear();
-    
-                    // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
-                    // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
-                    // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
-                    // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
-                    
+					try
+					{
+						/* code */
+                	    hold_nick_temp.clear();
+                	    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length() - (pos + 5));
+						std::stringstream t;
+						std::string tmpX;
+                	    for (size_t i = 0; i < 4; i++) {
+                	        std::getline(hold_nick_temp, tmp[i], ' ');
+							if (tmp[i].empty()) {
+								t << time(NULL);
+								t >> tmpX;
+								tmp[i] = "USER_1337_" + tmpX;
+							}
+                	    }
+						size_t pos = tmp[3].find(":", 0);
+                	    it->SetName(tmp[0]);
+                	    it->SetHostname(tmp[1]);
+                	    it->SetServername(inet_ntoa(it->client_sock_data.sin_addr));
+						if (pos != std::string::npos)
+                	    	tmp[3].erase(pos, 1);
+                	    it->SetRealname(tmp[3]);
+            			it->SetJustConnectedStatus(false);
+	
+						raw_data.clear();
+					}
+					catch(const std::exception& e)
+					{
+						std::cerr << e.what() << '\n';
+					}
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
-            it->SetNick(hold_user);
 	    	if (temp_pass != password) {
-	    		std::cout << "PASSWORD DOES NOT MATCH " + temp_pass << std::endl;
 	    		DeleteClient(client_fd);
 	    		return ;
 	    	}
@@ -400,16 +440,21 @@ void	Server::Authenticate(int client_fd) {
     }
 }
 
-bool        Server::ProccessIncomingData(int client_fd) {
+bool    Server::ProccessIncomingData(int client_fd) {
     ReadClientFd(client_fd);
     if (CheckDataValidity()) {
 	    if (JustConnected(client_fd))
-	    	Authenticate(client_fd);
+	   	 	Authenticate(client_fd);
 		else {
             try {
 	    	    Interpreter(client_fd);
                 raw_data.clear();
             } catch (Server::ClientQuitException &e) {
+				std::list<Channel>::iterator channel_it;
+				channel_it = this->_channels.begin();
+				Client& client = *this->GetClient(client_fd);
+				for (; channel_it != this->_channels.end(); ++channel_it)
+					channel_it->removeMember(client);
                 DeleteClient(client_fd);
                 std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
                 return true;
@@ -419,20 +464,17 @@ bool        Server::ProccessIncomingData(int client_fd) {
     return false;
 }
 
-bool    Server::AcceptIncomingConnections(int socket_fd) {
-    if (socket_fd == this->server_socket_fd) {
-        int new_client_fd = -1;
-        do {
-            new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	        if (new_client_fd > 0) {
-	        	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	        	InsertClient(new_client_fd);
-	        	std::cout << "Total Clients: " << clients.size() << std::endl;
-	        }
-        }
-        while (new_client_fd > 0);
-        return true;
+bool    Server::AcceptIncomingConnections(void) {
+    int new_client_fd = -1;
+    do {
+        new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	    if (new_client_fd > 0) {
+	    	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	    	InsertClient(new_client_fd);
+	    	std::cout << "Total Clients: " << clients.size() << std::endl;
+	    }
     }
+    while (new_client_fd > 0);
     return false;
 }
 
@@ -448,28 +490,30 @@ bool    Server::AcceptIncomingConnections(int socket_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
-	// std::list<Channel>::iterator channel_it;
+	std::list<Channel>::iterator channel_it;
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-			// channel_it = this->_channels.begin();
-			// for (; channel_it != this->_channels.end(); ++channel_it)
-			// 	channel_it->removeMember()
-			/* 
-				remove the disconnected ip from all channels 
-			*/
+			channel_it = this->_channels.begin();
+			Client& client = *this->GetClient(c_fd_queue[i].fd);
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				channel_it->removeMember(client);
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
-            AcceptIncomingConnections(c_fd_queue[i].fd);
-            ProccessIncomingData(c_fd_queue[i].fd);
+            if (this->c_fd_queue[i].fd == this->server_socket_fd) {
+				AcceptIncomingConnections();
+				continue ;
+			}
+        	if (ProccessIncomingData(c_fd_queue[i].fd))
+				return ;
         }
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
             send_buffer.clear();
 		}
-        if (CheckLoginTimeout(c_fd_queue[i].fd))
-            return ;
+        // if (CheckLoginTimeout(c_fd_queue[i].fd))
+        //     return ;
 	}
 }
 
@@ -483,6 +527,8 @@ void	Server::OnServerFdQueue(void) {
 void	Server::OnServerLoop(void) {
 	while (SRH) {
 	int 	poll_num = poll(&this->c_fd_queue[0], this->c_fd_queue.size(), 0);
+
+	AcceptIncomingConnections();
 
 	if (poll_num > 0)
 		OnServerFdQueue();
@@ -573,7 +619,7 @@ void	Server::Interpreter(int client_fd)
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
 	}
-	PrintCommandData(*(this->_data));
+	// PrintCommandData(*(this->_data));
 	if (this->_data->getCommand() == "NICK")
 		this->nick();
 	else if (this->_data->getCommand() == "JOIN")
@@ -593,6 +639,8 @@ void	Server::Interpreter(int client_fd)
     else if (this->_data->getCommand() == "QUIT") {
         throw(Server::ClientQuitException());
     }
+	else if (this->_data->getCommand() == "USER")
+		this->user();
 	raw_data.clear();
 	xit->SetBuffer("");
 }
@@ -600,13 +648,31 @@ void	Server::Interpreter(int client_fd)
 void	Server::nick()
 {
 	Client&		client = this->_data->getClient();
+	std::list<Client>::iterator client_it;
 	std::string	nickname;
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-		client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
-		client.SetNick(nickname);
+
+		/*
+			add code here to check if its a valid nickname
+		*/
+		client_it = std::find(this->clients.begin(), this->clients.end(), nickname);
+		if (client_it != this->clients.end() && nickname != client.getNick())
+			client.SetMessage(_user_info(client, false) + ERR_NICKNAMEINUSE(client.getNick(), nickname));
+		else if (nickname != client.getNick())
+		{
+			client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
+			std::list<Channel>::iterator channel_it;
+			channel_it = this->_channels.begin();
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				if (channel_it->onChannel(client))
+					channel_it->sendToAll(client, _user_info(client, true) + "NICK :" + nickname + "\r\n");
+			client.SetNick(nickname);
+		}
 	}
+	else
+		client.SetMessage(_user_info(client, false) + ERR_NONICKNAMEGIVEN(client.getNick()));
 }
 
 void	Server::join()
@@ -633,7 +699,7 @@ void	Server::join()
 	}
 	else
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -663,7 +729,7 @@ void	Server::who()
 				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
@@ -703,7 +769,7 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 }
 void	Server::mode()
 {
-	this->PrintCommandData(*(this->_data));   
+	// this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
 	const std::string&				target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
@@ -720,7 +786,7 @@ void	Server::mode()
 				this->set_remove_mode(client, channel_it);	
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::privMsg()
@@ -782,13 +848,13 @@ void	Server::privMsg()
 				client_it->SetMessage(msg_to_send);
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 
 void 	Server::topic()
 {
-	this->PrintCommandData(*this->_data);
+	// this->PrintCommandData(*this->_data);
 	Client&							client = this->_data->getClient();
 	std::string						target;
 	std::list<Channel>::iterator	channel_it;
@@ -839,6 +905,16 @@ void	Server::kick()
 		channel_it->kick(client, *target_it, this->_data->getMessage());
 }
 
-/*-------------------- handle space in message ------------------------*/
-/*-------------------- check first that there is a falid mode ------------------------*/
+void	Server::user()
+{
+	Client& client = this->_data->getClient();
+	client.SetMessage(_user_info(client, false) + ERR_ALREADYREGISTERED(client.getNick()));
+}
+
 /*-------------------- remover memeber_prifixes function ------------------------*/
+
+/*--------------------- parser mode -------------------*/
+/*--------------------- remove from invited when kicking ----------------------------*/
+/*------------------------ check server connections --------------------------------*/
+/*------------------------- why hexchat have a problem when send NICK  ---------------------------------*/
+/*-------------------- add +t to channel modes ---------------------------*/

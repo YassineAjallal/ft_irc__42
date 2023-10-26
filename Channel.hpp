@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/22 10:27:41 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/25 16:02:04 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@
 #define ERR_INVITEONLYCHAN(client, channel) 									("473 " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 #define	ERR_KEYSET(client, channel)												("467 " + client + " " + channel + " :Channel key already set\r\n")
 #define RPL_NOTOPIC(client, channel) 											("331 " + client + " " + channel + " :No topic is set\r\n")
-#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + ":" + topic + "\r\n")
+#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + " :" + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) 							("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) 												(prefix + nick + " ")
 #define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list.\r\n")
@@ -70,10 +70,8 @@ class Channel
 		std::vector<Client>	_invited;
 		std::vector<Member>	_members;
 		void				_set_topic(const std::string& t, std::string setterName);
-		bool				_on_channel(Client &client);
 		void				_add_member(Client &client, bool role);
 		std::string			_get_time();
-		std::string			_members_prefixes(const Member& member) const;
 
 	public:
 		Channel(const std::string& name); // has_pass = false, 
@@ -98,6 +96,7 @@ class Channel
 		void				setTopicTime(const std::string& tt);
 		void				setInviteOnly(bool b);
 
+		bool				onChannel(Client &client);
 		void 				join(Client &client);
 		void 				part(Client &client, std::string reason);
 		void				kick(Client &client, Client &kicked, std::string reason);
