@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/26 13:59:16 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/27 15:51:37 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,11 +167,12 @@ void 			Channel::join(Client &client)
 			client.SetMessage(_user_info(client, true) + ERR_CHANNELISFULL(client.getNick(), this->_name) + "\r\n");
 		else
 		{
-			if (this->_members.size() == 0)
+			if (client.getNick() == "irc_bot")
+				this->_add_member(client, true);
+			else if (this->_members.size() == 0 || (this->_members.size() == 1 && this->_members[0].getClient()->getNick() == "irc_bot"))
 				this->_add_member(client, true);
 			else
 				this->_add_member(client, false);
-	
 			messageToSend += _user_info(client, true) + "JOIN " + this->_name + " * :" + client.getRealname() + "\r\n";
 			messageToSend += (this->_topic.empty() ? "" : ( _user_info(client, false) + RPL_TOPIC(client.getNick(), this->_name, this->_topic) ));
 			messageToSend += (this->_topic.empty() ? "" : ( _user_info(client, false) + RPL_TOPICWHOTIME(client.getNick(), this->_name, this->_topic_setter, this->_time_topic_is_set) ));
@@ -283,7 +284,7 @@ std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remov
 	return (hold_message_return);
 }
 
-std::pair<int, std::string>			Channel::memberMode(Client &client, bool add_remove, char mode, Client& member)
+std::pair<int, std::string>		Channel::memberMode(Client &client, bool add_remove, char mode, Client& member)
 {
 	std::vector<Member>::iterator	member_it;
 	std::vector<Member>::iterator	client_it;
@@ -386,7 +387,7 @@ std::string		Channel::showUsers(Client& client) const
 	std::string users;
 	users += "353 " + client.getNick() + " = " + this->_name + " :";
 	for(size_t i = 0; i < this->_members.size(); i++)
-		users += (this->_members[i].getOperatorPriv() ? "@" : "")  + this->_members[i].getClient()->getNick() + " ";
+		users += ((this->_members[i].getOperatorPriv() && this->_members[i].getClient()->getNick() != "irc_bot") ? "@" : "")  + this->_members[i].getClient()->getNick() + " ";
 	users += "\r\n";
 	return (users);
 }

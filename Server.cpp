@@ -6,7 +6,7 @@
 /*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/26 14:03:13 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/27 15:17:29 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -258,7 +258,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -454,7 +454,13 @@ bool    Server::ProccessIncomingData(int client_fd) {
 				channel_it = this->_channels.begin();
 				Client& client = *this->GetClient(client_fd);
 				for (; channel_it != this->_channels.end(); ++channel_it)
-					channel_it->removeMember(client);
+				{
+					if (channel_it->onChannel(client))
+					{
+						channel_it->sendToAll(client, _user_info(client, true) + "QUIT :Quit: Leaving\r\n");
+						channel_it->removeMember(client);
+					}
+				}
                 DeleteClient(client_fd);
                 std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
                 return true;
@@ -497,7 +503,13 @@ void	Server::OnServerFdQueue(void) {
 			channel_it = this->_channels.begin();
 			Client& client = *this->GetClient(c_fd_queue[i].fd);
 			for (; channel_it != this->_channels.end(); ++channel_it)
-				channel_it->removeMember(client);
+			{
+				if (channel_it->onChannel(client))
+				{
+					channel_it->sendToAll(client, _user_info(client, true) + "QUIT :Quit: Leaving\r\n");
+					channel_it->removeMember(client);
+				}
+			}
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
@@ -697,7 +709,6 @@ void	Server::join()
 	}
 	else
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
-	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -937,3 +948,5 @@ void	Server::user()
 
 
 /*------------------------ check server connections --------------------------------*/
+/*------------------------- add another operator to channel --------------------------------*/
+/*---------------check mode function-------------------*/
