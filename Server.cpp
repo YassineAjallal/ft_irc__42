@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/26 14:03:13 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:29 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ Server::~Server() {}
 /* === Member Functions ===*/
 
 
-/* 
+/*
  - Generates required data for the server to start.
  - ai_family: family of connections that will be used by the server (IPV4/IPV6 or Local Unix socket...)
  - ai_socktype: type of packets that will be sent and recieved by the server, SOCK_STREAM (most suitable for TCP)
@@ -89,7 +89,7 @@ bool	Server::CreateServer(const std::string &port, const std::string &pass) {
 	int optval = 1;
 	if (this->GenerateServerData(port))
 		return 1;
-	
+
 	this->password = pass;
 	this->server_socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->server_socket_fd == -1) {
@@ -145,7 +145,7 @@ void	Server::PopOutClientFd(int client_fd) {
 	std::vector<int>::iterator it = client_fds.begin();
 	std::list<Client>::iterator itc = clients.begin();
 	std::vector<struct pollfd>::iterator itp = c_fd_queue.begin();
-	
+
 	while (it != client_fds.end()) {
 		if (*it == client_fd) {
 			client_fds.erase(it);
@@ -217,7 +217,7 @@ void	Server::InsertClient(int client_fd) {
 
 /*
 	- Finds the right client index from the poll queue since poll queue has the socket fd
-	  so the result might always be different by up to one index more than poll queue 
+	  so the result might always be different by up to one index more than poll queue
 */
 int		Server::FindClient(int client_fd) {
     size_t                      i = 0;
@@ -607,7 +607,7 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
 
 /*
 	- Note to self: Tokenizer seems somewhat done. All i need to do now is
-	to parse more 
+	to parse more
 
 */
 void	Server::Interpreter(int client_fd) 
@@ -676,7 +676,7 @@ void	Server::nick()
 void	Server::join()
 {
 	std::string 					channel_name;
-	std::string 					channel_password;						
+	std::string 					channel_password;
 	std::list<Channel>::iterator	channel_it;
 	Client&							client = this->_data->getClient();
 

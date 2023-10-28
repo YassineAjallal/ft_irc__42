@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/26 13:59:16 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:28:17 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ _creation_time(time(NULL))
 
 Channel::~Channel()
 {
-    
+
 }
 
 std::string 	Channel::getName() const
@@ -130,6 +130,7 @@ bool			Channel::operator!=(const std::string& c)
 
 bool			Channel::onChannel(Client &client)
 {
+	// std::cout << ((std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end()) ? "Found":"Not Found") << std::endl;
 	return (std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end());
 }
 
@@ -360,7 +361,6 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 			this->sendToAll(client, _user_info(client, true) + "TOPIC " + this->_name + " :" + this->_topic + "\r\n");
 		}
 	}
-	
 }
 
 void			Channel::who(Client &client)
