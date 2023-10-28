@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/28 15:00:49 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/28 15:41:12 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ _creation_time(time(NULL))
 
 Channel::~Channel()
 {
-    
+
 }
 
 std::string 	Channel::getName() const
@@ -130,6 +130,7 @@ bool			Channel::operator!=(const std::string& c)
 
 bool			Channel::onChannel(Client &client)
 {
+	// std::cout << ((std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end()) ? "Found":"Not Found") << std::endl;
 	return (std::find(this->_members.begin(), this->_members.end(), client) != this->_members.end());
 }
 
@@ -361,7 +362,6 @@ void			Channel::topic(Client &client, bool topic_exist, std::string topic)
 			this->sendToAll(client, _user_info(client, true) + "TOPIC " + this->_name + " :" + this->_topic + "\r\n");
 		}
 	}
-	
 }
 
 void			Channel::who(Client &client)
