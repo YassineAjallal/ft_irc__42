@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/27 15:51:37 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 15:00:49 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -379,7 +379,7 @@ void			Channel::who(Client &client)
 								  (this->_members[i].getOperatorPriv() ? "@" : ""),
 								  this->_members[i].getClient()->getRealname());
 	}
-	who_reply += ":" + client.getServername() + " " + RPL_ENDOFWHO(client.getNick(), this->_name);
+	who_reply += _user_info(client, false) + RPL_ENDOFWHO(client.getNick(), this->_name);
 	client.SetMessage(who_reply);
 }
 std::string		Channel::showUsers(Client& client) const

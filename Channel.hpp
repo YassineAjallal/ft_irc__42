@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/26 13:32:45 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 15:01:42 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@
 #include <sstream>
 #include "Toolkit.hpp"
 
-#define MAX_SIZE 200
+#define MAX_SIZE 75
 #define ERR_NEEDMOREPARAMS(client, command)										("461 " + client + " " + command + " :Not enough parameters\r\n")
 #define ERR_NOSUCHCHANNEL(client, channel) 										("403 " + client + " " + channel + " :No such channel\r\n")
 #define ERR_TOOMANYCHANNELS(client, channel) 									("405 " + client + " " + channel + " :You have joined too many channels\r\n")
