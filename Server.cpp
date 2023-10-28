@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/28 12:27:29 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/28 15:42:36 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -258,7 +258,7 @@ void 	Server::ReadClientFd(int client_fd) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
+            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -454,7 +454,13 @@ bool    Server::ProccessIncomingData(int client_fd) {
 				channel_it = this->_channels.begin();
 				Client& client = *this->GetClient(client_fd);
 				for (; channel_it != this->_channels.end(); ++channel_it)
-					channel_it->removeMember(client);
+				{
+					if (channel_it->onChannel(client))
+					{
+						channel_it->sendToAll(client, _user_info(client, true) + "QUIT :Quit: Leaving\r\n");
+						channel_it->removeMember(client);
+					}
+				}
                 DeleteClient(client_fd);
                 std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
                 return true;
@@ -497,7 +503,13 @@ void	Server::OnServerFdQueue(void) {
 			channel_it = this->_channels.begin();
 			Client& client = *this->GetClient(c_fd_queue[i].fd);
 			for (; channel_it != this->_channels.end(); ++channel_it)
-				channel_it->removeMember(client);
+			{
+				if (channel_it->onChannel(client))
+				{
+					channel_it->sendToAll(client, _user_info(client, true) + "QUIT :Quit: Leaving\r\n");
+					channel_it->removeMember(client);
+				}
+			}
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
@@ -546,7 +558,6 @@ void	Server::OnServerLoop(void) {
 void    Server::PrintCommandData(Parse &Data) {
     std::vector<std::string> tmp = Data.getTarget();
     std::vector<std::string>::iterator it = tmp.begin();
-	std::cout << "raw buffer : " << Data.getClient().GetBuffer() << std::endl;
     std::cout << "- Command: " + Data.getCommand() << std::endl;
     std::cout << "- Targets: " << std::endl;
     while (it != tmp.end())
@@ -568,7 +579,7 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
     std::vector<std::string> args;
     std::vector<std::string> targets;
     
-	str.replace(str.find("\r\n"), 2, "");
+	//str.replace(str.find("\r\n"), 2, "");
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
     if (token)
@@ -614,35 +625,43 @@ void	Server::Interpreter(int client_fd)
 {
     std::list<Client>::iterator xit = std::find(clients.begin(), clients.end(), client_fd);
     this->_data = new Parse(*xit);
-	if (xit->GetBuffer().find(":", 0) != std::string::npos) {
-		CreateCommandData(client_fd, MSGINCLUDED);
-	} else {
-		CreateCommandData(client_fd, MSGNOTINCLUDED);
-	}
-	// PrintCommandData(*(this->_data));
-	if (this->_data->getCommand() == "NICK")
-		this->nick();
-	else if (this->_data->getCommand() == "JOIN")
-		this->join();
-	else if (this->_data->getCommand() == "WHO")
-		this->who();
-	else if (this->_data->getCommand() == "MODE")
-		this->mode();
-	else if (this->_data->getCommand() == "PRIVMSG")
-		this->privMsg();
-	else if (this->_data->getCommand() == "TOPIC")
-		this->topic();
-	else if (this->_data->getCommand() == "INVITE")
-		this->invite();
-	else if (this->_data->getCommand() == "KICK")
-		this->kick();
-    else if (this->_data->getCommand() == "QUIT") {
-        throw(Server::ClientQuitException());
+    std::string temp_buf = xit->GetBuffer();
+    char *str_tmp = std::strtok(const_cast<char *>(temp_buf.c_str()),  "\r\n");
+    while (str_tmp) {
+        xit->SetBuffer(str_tmp);
+        if (xit->GetBuffer().find(":", 0) != std::string::npos) {
+		    CreateCommandData(client_fd, MSGINCLUDED);
+	    } else {
+	    	CreateCommandData(client_fd, MSGNOTINCLUDED);
+	    }
+	    PrintCommandData(*(this->_data));
+	    if (this->_data->getCommand() == "NICK")
+	    	this->nick();
+	    else if (this->_data->getCommand() == "JOIN")
+	    	this->join();
+	    else if (this->_data->getCommand() == "WHO")
+	    	this->who();
+	    else if (this->_data->getCommand() == "MODE")
+	    	this->mode();
+	    else if (this->_data->getCommand() == "PRIVMSG")
+	    	this->privMsg();
+	    else if (this->_data->getCommand() == "TOPIC")
+	    	this->topic();
+	    else if (this->_data->getCommand() == "INVITE")
+	    	this->invite();
+	    else if (this->_data->getCommand() == "KICK")
+	    	this->kick();
+        else if (this->_data->getCommand() == "QUIT") {
+            delete this->_data;
+            throw(Server::ClientQuitException());
+        }
+	    else if (this->_data->getCommand() == "USER")
+	    	this->user();
+	    raw_data.clear();
+	    xit->SetBuffer("");
+            str_tmp = std::strtok(NULL, "\r\n");
     }
-	else if (this->_data->getCommand() == "USER")
-		this->user();
-	raw_data.clear();
-	xit->SetBuffer("");
+    delete this->_data;
 }
 
 void	Server::nick()
@@ -697,7 +716,6 @@ void	Server::join()
 	}
 	else
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
-	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -872,7 +890,6 @@ void	Server::privMsg()
 				client_it->SetMessage(msg_to_send);
 		}
 	}
-	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 

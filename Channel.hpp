@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/28 12:27:47 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/28 15:41:40 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@
 #include <sstream>
 #include "Toolkit.hpp"
 
-#define MAX_SIZE 200
+#define MAX_SIZE 75
 #define ERR_NEEDMOREPARAMS(client, command)										("461 " + client + " " + command + " :Not enough parameters\r\n")
 #define ERR_NOSUCHCHANNEL(client, channel) 										("403 " + client + " " + channel + " :No such channel\r\n")
 #define ERR_TOOMANYCHANNELS(client, channel) 									("405 " + client + " " + channel + " :You have joined too many channels\r\n")

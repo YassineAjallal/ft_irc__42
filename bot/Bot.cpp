@@ -13,15 +13,34 @@
 #include "Bot.hpp"
 #include "../Toolkit.hpp"
 
+void Bot::join_channesl()
+{
+    usleep(500);
+    const char *sender = "JOIN #general\r\n";
+    send(this->socket_id, sender, strlen(sender), 0);
+    usleep(500);
+    const char *sender2 = "JOIN #random\r\n";
+    send(this->socket_id, sender2, strlen(sender2), 0);
+    usleep(500);
+    const char *sender3 = "JOIN #mkhairou mkhairou\r\n";
+    send(this->socket_id, sender3, strlen(sender3), 0);
+    usleep(500);
+    const char *sender4 = "JOIN #yajallal yajallal\r\n";
+    send(this->socket_id, sender4, strlen(sender4), 0);
+    usleep(500);
+    const char *sender5 = "JOIN #hmeftah hmeftah\r\n";
+    send(this->socket_id, sender5, strlen(sender5), 0);
+}
+
 Bot::Bot(const std::string &port, const std::string &pass)
 {
-    name = "IRC_BOT";
+    name = "irc_bot";
     init_jokes();
     init_facts();
     init_help();
     this->Forbidden_msg.push_back("forbidden words:");
-    this->Forbidden_msg.push_back("");
-    this->Forbidden_msg.push_back("");
+    this->Forbidden_msg.push_back("amzgis");
+    this->Forbidden_msg.push_back("yassin");
     _bzero(&this->hints, sizeof(this->hints));
     this->hints.ai_family = AF_INET;
 	this->hints.ai_socktype = SOCK_STREAM;
@@ -32,9 +51,10 @@ Bot::Bot(const std::string &port, const std::string &pass)
         throw std::runtime_error("socket failed");
     if (connect(this->socket_id, res->ai_addr, res->ai_addrlen))
         throw std::runtime_error("connect failed");
-    std::string tmp = "CAP LS\r\nPASS "+pass+"\r\nNICK IRC_BOT\r\nUSER IRC_BOT IRC_BOT localhost :IRC_BOT\r\n";
+    std::string tmp = "CAP LS\r\nPASS "+pass+"\r\nNICK irc_bot\r\nUSER irc_bot irc_bot localhost :irc_bot\r\n";
     const char *msg = tmp.c_str();
     send(this->socket_id, msg, strlen(msg), 0);
+    join_channesl();
 }
 
 Bot::~Bot()
@@ -81,7 +101,7 @@ void Bot::init_facts()
 
 void Bot::init_help()
 {
-    help_message = "Usage: bot [option]\nOptions:\n \t\t\t -h,--help\t\t\tPrint this help message\n \t\t\t -j,--joke\t\t\tTell a joke\n \t\t\t -d,--date\t\t\tTell the date\n \t\t\t -f,--fact\t\t\tTell a fact\n \t\t\t -m,--math [args ...]\t\t\tDo some math \n \t\t\t -r,--roll\t\t\tRoll some dice\n \t\t\t -v,--version\t\t\tPrint the version\n";
+    help_message = "Usage: bot [option]\nOptions:\n \t\t\t -h,--help\t\t\tPrint this help message\n \t\t\t -j,--joke\t\t\tTell a joke\n \t\t\t -d,--date\t\t\tTell the date\n \t\t\t -f,--fact\t\t\tTell a fact\n \t\t\t -r,--roll\t\t\tRoll some dice\n \t\t\t -v,--version\t\t\tPrint the version\n";
 }
 
 void Bot::print_help()
@@ -122,12 +142,6 @@ void Bot::print_date()
     buffer += tmp + "\r\n";
 }
 
-
-void Bot::print_math()
-{
-    buffer = "2 + 2 = 4";
-}
-
 void Bot::print_roll()
 {
     srand(time(NULL));
@@ -165,8 +179,6 @@ void Bot::bot_main(std::vector<std::string> &commands)
         print_date();
     else if(option == "-f" || option == "--fact")
         print_fact();
-    else if(option == "-m" || option == "--math")
-        print_math();
     else if(option == "-r" || option == "--roll")
         print_roll();
     else if(option == "-v" || option == "--version")
@@ -190,7 +202,7 @@ void Bot::check_conversation(std::vector<std::string> &conversation)
         std::vector<std::string>::iterator i =std::find(Forbidden_msg.begin(), Forbidden_msg.end(), *it);
         if(i != Forbidden_msg.end())
         {
-            buffer = "KICK "+ this->sender +" : using forbidden words\r\n";
+            buffer = "KICK "+ this->user +" " + this->sender +" :using forbidden words\r\n";
         }
     }
 
@@ -212,7 +224,7 @@ void Bot::parse_command(std::string command)
     if (this->cmd == "PRIVMSG")
     {
         std::cout << this->user.at(0) << std::endl;
-        if(this->user == "IRC_BOT")
+        if(this->user == "irc_bot")
         {
             buffer = "PRIVMSG "+ this->sender +" :";
             bot_main(commands);

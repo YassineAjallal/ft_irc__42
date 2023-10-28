@@ -58,6 +58,7 @@ private:
 	void bot_main(std::vector<std::string> &commands);
 	void parse_command(std::string command);
 	void check_conversation(std::vector<std::string> &conversation);
+	void join_channesl();
 public:
 	Bot(const std::string &port, const std::string &pass);
 	void run_bot();
