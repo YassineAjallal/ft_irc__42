@@ -2,11 +2,10 @@
 #include "Client.hpp"
 
 // Constructors
-Member::Member(Client &client, bool operator_prev, bool founder_prev, bool topic_prev) :
+Member::Member(Client &client, bool operator_priv, bool founder_priv) :
 _client(&client),
-_operator_prev(operator_prev),
-_founder_prev(founder_prev),
-_topic_prev(topic_prev)
+_operator_priv(operator_priv),
+_founder_priv(founder_priv)
 {}
 Member::~Member(){}
 
@@ -25,31 +24,23 @@ bool Member::operator!=(const Client& client)
 	return (this->_client->getSockID() != client.getSockID());
 }
 
-bool	Member::getOperatorPrev() const
+bool	Member::getOperatorPriv() const
 {
-	return (this->_operator_prev);
+	return (this->_operator_priv);
 }
 
-void    Member::setOperatorPrev(bool op)
+void    Member::setOperatorPriv(bool op)
 {
-	this->_operator_prev = op;
+	this->_operator_priv = op;
 }
 
-bool	Member::getFounderPrev() const
+bool	Member::getFounderPriv() const
 {
-	return (this->_founder_prev);
+	return (this->_founder_priv);
 }
 
-void    Member::setFounderPrev(bool fo)
+void    Member::setFounderPriv(bool fo)
 {
-	this->_founder_prev = fo;
-}
-bool	Member::getTopicPrev() const
-{
-	return (this->_topic_prev);
+	this->_founder_priv = fo;
 }
 
-void    Member::setTopicPrev(bool to)
-{
-	this->_topic_prev = to;
-}

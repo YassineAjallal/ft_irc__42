@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:28:13 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/16 12:00:19 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:34 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,9 @@
 #include "Server.hpp"
 
 
-Client::Client() :  nick(""), socket_id(-1), just_connected(0), should_be_kicked(0) { }
+Client::Client() :  nick(""), socket_id(-1), just_connected(0), should_be_kicked(0), last_user_activity(_gettime()) { }
 
-Client::Client(const Client& copy) : nick(copy.nick), socket_id(copy.getSockID()), just_connected(copy.JustConnectedStatus()), should_be_kicked(copy.should_be_kicked) {}
+Client::Client(const Client& copy) : nick(copy.nick), socket_id(copy.getSockID()), just_connected(copy.JustConnectedStatus()), should_be_kicked(copy.should_be_kicked), last_user_activity(copy.last_user_activity) {}
 
 Client &Client::operator=(const Client& copy) {
 	if (&copy != this) {
@@ -24,6 +24,7 @@ Client &Client::operator=(const Client& copy) {
 		socket_id = copy.socket_id;
 		just_connected = copy.just_connected;
 		should_be_kicked = copy.should_be_kicked;
+        last_user_activity = copy.last_user_activity;
 	}
 	return *this;
 }
@@ -34,9 +35,9 @@ Client::~Client()  {
 
 Client::Client(int socket_id, bool just_connected) {
     Client();
-    this->user_connected_date = time(NULL);
 	this->socket_id = socket_id;
 	this->just_connected = just_connected;
+    this->last_user_activity = _gettime();
 	
 }
 
@@ -139,6 +140,10 @@ bool		Client::operator==(const std::string& s)
 	return (this->nick == s);
 }
 
+bool    Client::operator==(int c) {
+    return this->socket_id == c;
+}
+
 bool		Client::operator!=(const Client& c)
 {
 	return (this->socket_id != c.getSockID());
@@ -159,6 +164,6 @@ std::ostream& operator<<(std::ostream& os, Client &client)
 	return (os);
 }
 
-unsigned long Client::GetConnectedDate() const {
-    return (this->user_connected_date);
+size_t Client::GetLastUserActivity() const {
+    return (this->last_user_activity);
 }

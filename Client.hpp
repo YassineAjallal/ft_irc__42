@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/25 16:21:36 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/16 12:00:04 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:32 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <sys/time.h>
+#include "Toolkit.hpp"
 
 struct AddressDataClient {
 	public:
@@ -46,7 +48,7 @@ class Client : public AddressDataClient, public ClientInfo
 		bool			should_be_kicked;
 		std::string		raw_data;
 		std::string		send_buffer; // the message from server
-		unsigned long   user_connected_date;
+		unsigned long   last_user_activity;
 		
 		//bool			IsOperator;
 		
@@ -62,7 +64,6 @@ class Client : public AddressDataClient, public ClientInfo
 		void				SetKickStatus(bool status);
 		int					JustConnectedStatus() const;
 		const std::string&	GetBuffer(void) const;
-		unsigned long   	GetConnectedDate() const;
 		void				SetJustConnectedStatus(bool status);
 		std::string&		GetMessageBuffer(void);
 		void				SetBuffer(const std::string& buffer);
@@ -79,8 +80,11 @@ class Client : public AddressDataClient, public ClientInfo
         const std::string&	getHostname() const;
         const std::string&	getServername() const;
         const std::string&	getRealname() const;
+        
+        size_t GetLastUserActivity() const;
 
 		bool				operator==(const Client& c);
+        bool                operator==(int c);
 		bool				operator==(const std::string& s);
 		bool				operator!=(const Client& c);
 };

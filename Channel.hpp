@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:22 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/18 13:50:46 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:47 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,65 +39,29 @@
 #define ERR_INVITEONLYCHAN(client, channel) 									("473 " + client + " " + channel + " :Cannot join channel (+i)\r\n")
 #define	ERR_KEYSET(client, channel)												("467 " + client + " " + channel + " :Channel key already set\r\n")
 #define RPL_NOTOPIC(client, channel) 											("331 " + client + " " + channel + " :No topic is set\r\n")
-#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + ":" + topic + "\r\n")
+#define RPL_TOPIC(client, channel, topic) 										("332 " + client + " " + channel + " :" + topic + "\r\n")
 #define RPL_TOPICWHOTIME(client, channel, nick, setat) 							("333 " + client + " " + channel + " " + nick + " " + setat + "\r\n")
 #define RPL_NAMREPLY(prefix, nick) 												(prefix + nick + " ")
-#define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list\r\n")
+#define RPL_ENDOFNAMES(client, channel) 										("366 " + client + " " + channel + " :End of /NAMES list.\r\n")
 #define RPL_INVITING(client, nick, channel) 									("341 " + client + " " + nick + " " + channel + "\r\n")
+#define ERR_UNKNOWNMODE(client, modechar)										("472 " + client + " " + modechar + " :is unknown mode char to me\r\n")
 
 
-#define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list\r\n")
-#define RPL_WHOREPLY(client, channel, username, host, server, nick, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H 0 :" + realname + "\r\n")
+#define RPL_ENDOFWHO(client, mask) 												("315 " + client + " " + mask + " :End of WHO list.\r\n")
+#define RPL_WHOREPLY(client, channel, username, host, server, nick, prefixes, realname)	("352 " + client + " " + channel + " " + username + " " + host + " " + server + " " + nick + " H" + prefixes + " :0 " + realname + "\r\n")
 
 #define RPL_CHANNELMODEIS(client, channel, modes)								("324 " + client + " " + channel + " " + modes + "\r\n")
 #define RPL_CREATIONTIME(client, channel, creationtime)							("329 " + client + " " + channel + " " + creationtime + "\r\n")
 // numeric 
-class Channel {
-	public:
-		Channel(const std::string& name); // has_pass = false, 
-		Channel(const std::string& name, const std::string& password);
-		~Channel();
-		
-		// getters
-		std::string 		getName() const;
-		std::string 		getPassword() const;
-		std::string			getTopic() const;
-		bool				getHasPassword() const;
-		bool				getInviteOnly() const;
-		size_t				getSize() const;
-
-		// setters
-		void				setPassword(const std::string& new_password, bool has_password);
-		void				setHasPassword(bool b);
-		void				setSize(const int& s);
-		void				setTopicSetter(const std::string& ts);
-		void				setTopicTime(const std::string& tt);
-		void				setInviteOnly(bool b);
-
-		void 				join(Client &client);
-		void 				part(Client &client, std::string reason);
-		void				kick(Client &client, Client &kicked, std::string reason);
-		void				topic(Client &client, bool topic_exist, std::string topic);
-		void				who(Client &client); // execute when a client send " WHO #channel_name "
-		void				invite(Client& client, Client &invited);
-		void				sendToAll(Client &client, std::string msg);
-		void				sendToOperators(Client &client, std::string msg);
-		void				sendToFounder(Client &client, std::string msg);
-		std::string			showUsers(Client& client) const;
-		void		 		mode(Client &client);
-		void				member_mode(Client &client, bool add_remove, std::string mode, Client& member);
-		/* change the std::pair by target */
-		void				channel_mode(Client &client, bool add_remove, std::string mode, std::string param);
-	
-		bool				operator==(const std::string& c);
-		bool				operator!=(const std::string& c);
-
+class Channel 
+{
 	private:
 		std::string 		_name;
 		int					_size;
 		bool				_has_password;
 		bool				_invite_only;
 		bool				_has_topic;
+		bool				_topic_priv;
 		std::string 		_password;
 		std::string 		_topic;
 		std::string 		_topic_setter;
@@ -106,11 +70,51 @@ class Channel {
 		std::vector<Client>	_invited;
 		std::vector<Member>	_members;
 		void				_set_topic(const std::string& t, std::string setterName);
-		bool				_on_channel(Client &client);
 		void				_add_member(Client &client, bool role);
-		void				_remove_member(Client &client);
 		std::string			_get_time();
-		std::string			_members_prefixes(const Member& member) const;
+
+	public:
+		Channel(const std::string& name); // has_pass = false, 
+		Channel(const std::string& name, const std::string& password);
+		~Channel();
+		
+		// getters
+		std::string 				getName() const;
+		std::string 				getPassword() const;
+		std::string					getTopic() const;
+		bool						getHasPassword() const;
+		bool						getInviteOnly() const;
+		bool						getTopicPriv() const;
+		size_t						getSize() const;
+		
+		// setters		
+		void						setPassword(const std::string& new_password, bool has_password);
+		void						setHasPassword(bool b);
+		void						setTopicPriv(bool b);
+		void						setSize(const int& s);
+		void						setTopicSetter(const std::string& ts);
+		void						setTopicTime(const std::string& tt);
+		void						setInviteOnly(bool b);
+		
+		bool						onChannel(Client &client);
+		void 						join(Client &client);
+		void 						part(Client &client, std::string reason);
+		void						kick(Client &client, Client &kicked, std::string reason);
+		void						topic(Client &client, bool topic_exist, std::string topic);
+		void						who(Client &client); // execute when a client send " WHO #channel_name "
+		void						invite(Client& client, Client &invited);
+		void						sendToAll(Client &client, std::string msg);
+		void						sendToOperators(Client &client, std::string msg);
+		void						sendToFounder(Client &client, std::string msg);
+		std::string					showUsers(Client& client) const;
+		void		 				mode(Client &client);
+		std::pair<int, std::string>	memberMode(Client &client, bool add_remove, char mode, Client& member);
+		std::pair<int, std::string>	channelMode(Client &client, bool add_remove, char mode, std::string param);
+		void						removeMember(Client &client);
+	
+		bool						operator==(const std::string& c);
+		bool						operator!=(const std::string& c);
+
 };
 
 #endif // Channel_HPP

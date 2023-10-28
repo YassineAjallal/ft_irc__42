@@ -8,26 +8,22 @@ class Client;
 
 class Member {
 public:
-    Member(Client &client, bool operator_prev, bool founder_prev, bool topic_prev);
+    Member(Client &client, bool operator_priv, bool founder_priv);
     ~Member();
 	bool	operator==(const Client& client);
 	bool	operator!=(const Client& client);
 	Client* getClient() const;
 
-	bool	getOperatorPrev() const;
-	void    setOperatorPrev(bool op);
+	bool	getOperatorPriv() const;
+	void    setOperatorPriv(bool op);
 
-	bool	getFounderPrev() const;
-	void    setFounderPrev(bool fo);
-
-	bool	getTopicPrev() const;
-	void    setTopicPrev(bool to);
+	bool	getFounderPriv() const;
+	void    setFounderPriv(bool fo);
 
 private:
 	Client*	_client;
-	bool	_operator_prev;
-	bool	_founder_prev;
-	bool	_topic_prev;
+	bool	_operator_priv;
+	bool	_founder_priv;
 };
 
 #endif // Member_HPP

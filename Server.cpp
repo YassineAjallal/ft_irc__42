@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mkhairou <mkhairou@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/20 13:05:38 by mkhairou         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:29 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,6 @@ Server::Server() : client_count(0)
 	this->server_socket_fd = -1;
 	this->socket_data_size = sizeof(this->client_sock_data);
 	this->clients.clear();
-	this->clients.reserve(MAX_IRC_CONNECTIONS);
 	this->_setChannels();
 }
 
@@ -34,13 +33,13 @@ Server::Server(const Server& copy)
 	this->c_fd_queue = copy.c_fd_queue;
 	this->client_fds = copy.client_fds;
 	this->client_count = copy.client_count;
-	this->clients.reserve(MAX_IRC_CONNECTIONS);
 	this->_setChannels();
 }
 
 Server::Server(std::string port, std::string pass) {
 	Server();
 	CreateServer(port, pass);
+	this->_setChannels();
 }
 
 Server &Server::operator=(const Server& copy)
@@ -144,7 +143,7 @@ void	 Server::CloseConnections(void) {
 */
 void	Server::PopOutClientFd(int client_fd) {
 	std::vector<int>::iterator it = client_fds.begin();
-	std::vector<Client>::iterator itc = clients.begin();
+	std::list<Client>::iterator itc = clients.begin();
 	std::vector<struct pollfd>::iterator itp = c_fd_queue.begin();
 
 	while (it != client_fds.end()) {
@@ -152,21 +151,21 @@ void	Server::PopOutClientFd(int client_fd) {
 			client_fds.erase(it);
 			break ;
 		}
-		it++;
+		++it;
 	}
 	while (itc != clients.end()) {
 		if (itc->getSockID() == client_fd) {
 			clients.erase(itc);
 			break ;
 		}
-		itc++;
+		++itc;
 	}
 	while (itp != c_fd_queue.end()) {
 		if (itp->fd == client_fd) {
 			c_fd_queue.erase(itp);
 			break ;
 		}
-		itp++;
+		++itp;
 	}
 }
 
@@ -188,8 +187,15 @@ void	Server::DeleteClient(int client_fd) {
  - Copies socket data for each client, useful if you want to extract the ip later on
 */
 void	Server::CopySockData(int client_fd) {
-	this->clients.at(FindClient(client_fd)).client_sock_data = this->client_sock_data;
-	this->clients.at(FindClient(client_fd)).socket_data_size = this->socket_data_size;
+    std::list<Client>::iterator itc = clients.begin();
+
+    while (itc != clients.end()) {
+        if (itc->getSockID() == client_fd) {
+            itc->client_sock_data = this->client_sock_data;
+            itc->socket_data_size = this->socket_data_size;
+        }
+        ++itc;
+    }
 }
 
 /*
@@ -214,13 +220,26 @@ void	Server::InsertClient(int client_fd) {
 	  so the result might always be different by up to one index more than poll queue
 */
 int		Server::FindClient(int client_fd) {
-	size_t i = 0;
-	while (i < clients.size()) {
-		if (clients.at(i).getSockID() == client_fd)
+    size_t                      i = 0;
+	std::list<Client>::iterator it = clients.begin();
+	while (it != clients.end()) {
+		if (it->getSockID() == client_fd)
 			return i;
 		i++;
+        ++it;
 	}
 	return -1;
+}
+
+std::list<Client>::iterator &Server::GetClient(int client_fd) {
+    static std::list<Client>::iterator it;
+    it = clients.begin();
+	int found = FindClient(client_fd);
+	// std::cout << "found Client at: " << found << std::endl;
+	if (found < 0)
+		return ((it = clients.end()));
+    std::advance(it, found);
+    return it;
 }
 
 /*
@@ -236,8 +255,10 @@ void 	Server::ReadClientFd(int client_fd) {
             buf[rb] = 0;
             raw_data += buf;
         } else if (rb <= 0) {
-            clients.at(FindClient(client_fd)).SetBuffer(raw_data);
-            // std::cout << "Buffer Read Data from: " << clients.at(FindClient(client_fd)).getSockID() << "\n" + clients.at(FindClient(client_fd)).GetBuffer() << std::endl;
+            std::list<Client>::iterator it = clients.begin();
+            std::advance(it, FindClient(client_fd));
+            it->SetBuffer(raw_data);
+            // std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -248,10 +269,13 @@ void 	Server::ReadClientFd(int client_fd) {
 	  to all clients connected.
 */
 void	Server::SendClientMessage(int client_fd) {
-	if (!clients.at(FindClient(client_fd)).GetMessageBuffer().empty()) {
-		send(client_fd, clients.at(FindClient(client_fd)).GetMessageBuffer().c_str(), clients.at(FindClient(client_fd)).GetMessageBuffer().length(), 0);
+    std::list<Client>::iterator it = clients.begin();
+    std::advance(it, FindClient(client_fd));
+
+	if (!it->GetMessageBuffer().empty()) {
+		send(client_fd, it->GetMessageBuffer().c_str(), it->GetMessageBuffer().length(), 0);
 	}
-    clients.at(FindClient(client_fd)).SetMessage("");
+    it->SetMessage("");
 	send_buffer.clear();
 }
 
@@ -259,14 +283,14 @@ void	Server::SendClientMessage(int client_fd) {
 	- Checks whether the client has just connected.
 */
 bool	Server::JustConnected(int socketfd) {
-	size_t i = 0;
+	std::list<Client>::iterator it = clients.begin();
 
 	if (!this->clients.empty()) {
-		while (i < this->clients.size()) {
-			if (socketfd == clients[i].getSockID()) {
-				return clients[i].JustConnectedStatus();
+		while (it != clients.end()) {
+			if (socketfd == it->getSockID()) {
+				return it->JustConnectedStatus();
 			}
-			i++;
+			++it;
 		}
 	}
 	return 0;
@@ -276,13 +300,13 @@ bool	Server::JustConnected(int socketfd) {
  - Kicks clients that should be kicked, there's a function to set client's kick status.
 */
 void	Server::KickClients(void) {
-	std::vector<Client>::iterator it = clients.begin();
+	std::list<Client>::iterator it = clients.begin();
 
 	while (it != clients.end()) {
 		if (it->ShouldBeKicked() == true) {
 			DeleteClient(it->getSockID());
 		}
-		it++;
+		++it;
 	}
 }
 /*
@@ -292,14 +316,21 @@ bool    Server::CheckDataValidity(void) {
     return (raw_data.find("\r\n") != std::string::npos);
 }
 
- bool   Server::CheckLoginTimeout(int client_fd) {
-    if (time(NULL) - clients.at(FindClient(client_fd)).GetConnectedDate() > MAX_TIMEOUT_DURATION)
-        return true;
+bool   Server::CheckLoginTimeout(int client_fd) {
+	std::list<Client>::iterator it = GetClient(client_fd);
+	if (it != clients.end()) {
+    	if (_gettime() -  it->GetLastUserActivity() > MAX_TIMEOUT_DURATION && it->JustConnectedStatus()) {
+    	    std::cout << "Client F_ID: " << client_fd << " timed out." << std::endl;
+    	    DeleteClient(client_fd);
+    	    return true;
+    	}
+	}
     return false;
 }
 
 bool    Server::CheckConnectDataValidity(int client_fd) {
-	std::string str = clients.at(FindClient(client_fd)).GetBuffer();
+    
+	std::string str = std::find(clients.begin(), clients.end(), client_fd)->GetBuffer();
     char *temp = std::strtok(const_cast<char *>(str.c_str()), "\r\n");
     while (temp) {
         std::string tmp_str = temp, tmp_compare;
@@ -311,6 +342,27 @@ bool    Server::CheckConnectDataValidity(int client_fd) {
         temp = std::strtok(NULL, "\r\n");
     }
     return false;
+}
+
+int    Server::CheckValidNick(std::string const &name) {
+    if (name.length() < 1)
+        return -1;
+    if (name[0] == '#' || (name[0] == '&' && name[1] == '#') || (name[0] == '#' && name[1] == '&'))
+        return 0;
+    return 1;
+}
+
+void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
+    Parse Data(*GetClient(client_fd));
+	this->_data = &Data;
+	std::cout << GetClient(client_fd)->getSockID() << std::endl;
+    std::vector<std::string> temp_vec;
+    
+    Data.setCommand(buf.substr(pos + 5, buf.length()));
+    if (!name.empty())
+        temp_vec.push_back(name);
+    Data.setArgs(temp_vec);
+    this->nick();
 }
 
 /*
@@ -325,71 +377,105 @@ void	Server::Authenticate(int client_fd) {
     std::string hold_user;
     std::stringstream hold_nick_temp;
     std::string tmp[4];
+    std::list<Client>::iterator it = std::find(clients.begin(), clients.end(), client_fd);
 	size_t pos;
 	int index;
 
 	index = FindClient(client_fd);
-    // if (CheckLoginTimeout(client_fd)) {
-    //     if (temp_pass != password) {
-	// 	    std::cout << "Client Couldn't Authenticate in time." << std::endl;
-    //         std::cout << "Timeout at: " << time(NULL) - clients.at(index).GetConnectedDate() << std::endl;
-	// 		DeleteClient(client_fd);
-	// 		return ;
-	// 	}
-    // }
     if (CheckConnectDataValidity(client_fd)) {
 	    if (index >= 0) {
-	    	pass = std::strtok(const_cast<char *>(clients.at(index).GetBuffer().c_str()), "\r\n");
+	    	pass = std::strtok(const_cast<char *>(std::find(clients.begin(), clients.end(), client_fd)->GetBuffer().c_str()), "\r\n");
 	    	while (pass != NULL) {
 	    		hold_pass = pass;
+				
+				int start = hold_pass.length() >= 5 ? 5 : hold_pass.length();
 	    		if ((pos = hold_pass.find("PASS", 0)) != std::string::npos) {
-	    			temp_pass = hold_pass.substr(pos + 5, hold_pass.length());
+	    			temp_pass = hold_pass.substr(pos + start, hold_pass.length());
 	    		}
                 else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
+                    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length());
                     std::getline(hold_nick_temp, hold_user, ' ');
+                    SetNickWrapper(client_fd, hold_user, hold_pass, pos);
+
                 }
                 else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
-                    hold_nick_temp.clear();
-                    hold_nick_temp << hold_pass.substr(pos + 5, hold_pass.length());
-                    for (size_t i = 0; i < 4; i++) {
-                        std::getline(hold_nick_temp, tmp[i], ' ');
-                    }
-                    clients.at(FindClient(client_fd)).SetName(tmp[0]);
-                    clients.at(FindClient(client_fd)).SetHostname(tmp[1]);
-                    clients.at(FindClient(client_fd)).SetServername(tmp[2]);
-                    tmp[3].erase(tmp[3].find(":", 0), 1);
-                    clients.at(FindClient(client_fd)).SetRealname(tmp[3]);
-            		clients.at(index).SetJustConnectedStatus(false);
-					raw_data.clear();
-
-                    // std::cout << "Name: " << clients.at(FindClient(client_fd)).getName() << std::endl;
-                    // std::cout << "HostName: " << clients.at(FindClient(client_fd)).getHostname() << std::endl;
-                    // std::cout << "ServerName: " << clients.at(FindClient(client_fd)).getServername() << std::endl;
-                    // std::cout << "RealName: " << clients.at(FindClient(client_fd)).getRealname() << std::endl;
-
+					try
+					{
+						/* code */
+                	    hold_nick_temp.clear();
+                	    hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length() - (pos + 5));
+						std::stringstream t;
+						std::string tmpX;
+                	    for (size_t i = 0; i < 4; i++) {
+                	        std::getline(hold_nick_temp, tmp[i], ' ');
+							if (tmp[i].empty()) {
+								t << time(NULL);
+								t >> tmpX;
+								tmp[i] = "USER_1337_" + tmpX;
+							}
+                	    }
+						size_t pos = tmp[3].find(":", 0);
+                	    it->SetName(tmp[0]);
+                	    it->SetHostname(tmp[1]);
+                	    it->SetServername(inet_ntoa(it->client_sock_data.sin_addr));
+						if (pos != std::string::npos)
+                	    	tmp[3].erase(pos, 1);
+                	    it->SetRealname(tmp[3]);
+            			it->SetJustConnectedStatus(false);
+	
+						raw_data.clear();
+					}
+					catch(const std::exception& e)
+					{
+						std::cerr << e.what() << '\n';
+					}
                 }
 	    		pass = std::strtok(NULL, "\r\n");
 	    	}
-            clients.at(index).SetNick(hold_user);
 	    	if (temp_pass != password) {
-	    		std::cout << "PASSWORD DOES NOT MATCH " + temp_pass << std::endl;
 	    		DeleteClient(client_fd);
 	    		return ;
 	    	}
-			// std::cout << clients.at(index).getNick() << std::endl;
-			if (clients.at(index).getNick() == "IRC_BOT")
-			{
-				std::list<Channel>::iterator channel_it = this->_channels.begin();
-				for(; channel_it != this->_channels.end(); channel_it++){
-
-					if (channel_it->getName() == "#general")
-						channel_it->join(clients.at(index));
-				}
-			}
-			// std::cout << clients.at(index).getNick() << std::endl;
 	    }
     }
+}
+
+bool    Server::ProccessIncomingData(int client_fd) {
+    ReadClientFd(client_fd);
+    if (CheckDataValidity()) {
+	    if (JustConnected(client_fd))
+	   	 	Authenticate(client_fd);
+		else {
+            try {
+	    	    Interpreter(client_fd);
+                raw_data.clear();
+            } catch (Server::ClientQuitException &e) {
+				std::list<Channel>::iterator channel_it;
+				channel_it = this->_channels.begin();
+				Client& client = *this->GetClient(client_fd);
+				for (; channel_it != this->_channels.end(); ++channel_it)
+					channel_it->removeMember(client);
+                DeleteClient(client_fd);
+                std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool    Server::AcceptIncomingConnections(void) {
+    int new_client_fd = -1;
+    do {
+        new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
+	    if (new_client_fd > 0) {
+	    	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+	    	InsertClient(new_client_fd);
+	    	std::cout << "Total Clients: " << clients.size() << std::endl;
+	    }
+    }
+    while (new_client_fd > 0);
+    return false;
 }
 
 /*
@@ -404,41 +490,30 @@ void	Server::Authenticate(int client_fd) {
 	  delete all client data including fd from the server.
 */
 void	Server::OnServerFdQueue(void) {
+	std::list<Channel>::iterator channel_it;
 	for (size_t i = 0; i < this->c_fd_queue.size(); i++) {
 		if (this->c_fd_queue[i].revents == (POLLIN | POLLHUP)) {
 			std::cout << "Client has disconnected, IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
+			channel_it = this->_channels.begin();
+			Client& client = *this->GetClient(c_fd_queue[i].fd);
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				channel_it->removeMember(client);
 			DeleteClient(c_fd_queue[i].fd);
 		}
 		else if (this->c_fd_queue[i].revents & POLLIN) {
             if (this->c_fd_queue[i].fd == this->server_socket_fd) {
-                int new_client_fd = -1;
-                do {
-                    new_client_fd = accept(this->server_socket_fd, (struct sockaddr *)&this->client_sock_data, &this->socket_data_size);
-	                if (new_client_fd > 0) {
-	                	std::cout << "Connected IP: " << inet_ntoa(this->client_sock_data.sin_addr) << std::endl;
-	                	InsertClient(new_client_fd);
-	                	std::cout << "Total Clients: " << clients.size() << std::endl;
-	                }
-                }
-                while (new_client_fd > 0);
-                continue;
-            }
-			ReadClientFd(this->c_fd_queue[i].fd);
-            if (CheckDataValidity()) {
-			    if (JustConnected(c_fd_queue[i].fd))
-				{
-			    	Authenticate(c_fd_queue[i].fd);
-					// std::cout << clients.at(FindClient(c_fd_queue[i].fd));
-				}
-				else
-			    	Interpreter(c_fd_queue[i].fd);
-            }
-		}
+				AcceptIncomingConnections();
+				continue ;
+			}
+        	if (ProccessIncomingData(c_fd_queue[i].fd))
+				return ;
+        }
 		else if (this->c_fd_queue[i].revents & POLLOUT) {
 			SendClientMessage(c_fd_queue[i].fd);
+            send_buffer.clear();
 		}
-		send_buffer.clear();
-		raw_data.clear();
+        // if (CheckLoginTimeout(c_fd_queue[i].fd))
+        //     return ;
 	}
 }
 
@@ -452,6 +527,8 @@ void	Server::OnServerFdQueue(void) {
 void	Server::OnServerLoop(void) {
 	while (SRH) {
 	int 	poll_num = poll(&this->c_fd_queue[0], this->c_fd_queue.size(), 0);
+
+	AcceptIncomingConnections();
 
 	if (poll_num > 0)
 		OnServerFdQueue();
@@ -485,12 +562,13 @@ void    Server::PrintCommandData(Parse &Data) {
 }
 
 void  	Server::CreateCommandData(int client_fd, CommandType type) {
-    std::string str = clients.at(FindClient(client_fd)).GetBuffer();
-	str.replace(str.find("\r\n"), 2, "");
-    std::string Accumulated_Message;
+    std::list<Client>::iterator xit = std::find(clients.begin(), clients.end(), client_fd);
+    std::string str = xit->GetBuffer();
+    std::string Accumulated_Message(str);
     std::vector<std::string> args;
     std::vector<std::string> targets;
-
+    
+	str.replace(str.find("\r\n"), 2, "");
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
     if (token)
@@ -506,10 +584,10 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
             size_t pos = it->find(":");
             if (pos != std::string::npos) {
                 it->erase(pos, 1);
-                while (it != args.end()) {
-                    Accumulated_Message += *(it++);
-					(it != args.end()) ? Accumulated_Message += " " : Accumulated_Message += "";
-				}
+                pos = Accumulated_Message.find(":", 0);
+                if (pos != std::string::npos) {
+                    Accumulated_Message = Accumulated_Message.substr(pos + 1, Accumulated_Message.length() - (pos + 1));
+                }
                 this->_data->setMessage(Accumulated_Message);
                 break ;
             } else
@@ -532,10 +610,11 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
 	to parse more
 
 */
-void	Server::Interpreter(int client_fd)
+void	Server::Interpreter(int client_fd) 
 {
-    this->_data = new Parse(clients.at(FindClient(client_fd)));
-	if (clients.at(FindClient(client_fd)).GetBuffer().find(":", 0) != std::string::npos) {
+    std::list<Client>::iterator xit = std::find(clients.begin(), clients.end(), client_fd);
+    this->_data = new Parse(*xit);
+	if (xit->GetBuffer().find(":", 0) != std::string::npos) {
 		CreateCommandData(client_fd, MSGINCLUDED);
 	} else {
 		CreateCommandData(client_fd, MSGNOTINCLUDED);
@@ -555,20 +634,43 @@ void	Server::Interpreter(int client_fd)
 		this->topic();
 	else if (this->_data->getCommand() == "INVITE")
 		this->invite();
+	else if (this->_data->getCommand() == "KICK")
+		this->kick();
+    else if (this->_data->getCommand() == "QUIT") {
+        throw(Server::ClientQuitException());
+    }
+	else if (this->_data->getCommand() == "USER")
+		this->user();
 	raw_data.clear();
-	clients.at(FindClient(client_fd)).SetBuffer("");
+	xit->SetBuffer("");
 }
 
 void	Server::nick()
 {
 	Client&		client = this->_data->getClient();
+	std::list<Client>::iterator client_it;
 	std::string	nickname;
 	if (this->_data->getArgs().size() != 0)
 	{
 		std::string  nickname = this->_data->getArgs().at(0);
-		client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
-		client.SetNick(nickname);
+		client_it = std::find(this->clients.begin(), this->clients.end(), nickname);
+		if (!this->CheckValidNick(nickname))
+			client.SetMessage(_user_info(client, false) + ERR_ERRONEUSNICKNAME(client.getNick(), nickname));
+		else if (client_it != this->clients.end() && nickname != client.getNick())
+			client.SetMessage(_user_info(client, false) + ERR_NICKNAMEINUSE(client.getNick(), nickname));
+		else if (nickname != client.getNick())
+		{
+			client.SetMessage(_user_info(client, true) + "NICK" + " :" + nickname + "\r\n");
+			std::list<Channel>::iterator channel_it;
+			channel_it = this->_channels.begin();
+			for (; channel_it != this->_channels.end(); ++channel_it)
+				if (channel_it->onChannel(client))
+					channel_it->sendToAll(client, _user_info(client, true) + "NICK :" + nickname + "\r\n");
+			client.SetNick(nickname);
+		}
 	}
+	else
+		client.SetMessage(_user_info(client, false) + ERR_NONICKNAMEGIVEN(client.getNick()));
 }
 
 void	Server::join()
@@ -595,7 +697,7 @@ void	Server::join()
 	}
 	else
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::_setChannels()
@@ -607,14 +709,9 @@ void	Server::_setChannels()
 	this->_channels.push_back(Channel("#general"));
 }
 
-void	Server::kick()
-{
-	// std::string	channel_name;
-}
-
 void	Server::who()
 {
-
+	
 	std::list<Channel>::iterator	channel_it;
 	std::string						message_to_send;
 	Client&							client = this->_data->getClient();
@@ -630,46 +727,88 @@ void	Server::who()
 				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
-// void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
-// {
-// 	std::string&	mode = this->_data->getArgs().at(1);
-// 	char			set_or_remove = mode.at(0);
-// 	mode.erase(mode.begin());
-// 	if (!mode.empty())
-// 	{
-// 		for (size_t i = 0; i < mode.size(); i++)
-// 		{
-// 			if (std::strchr("ikl", mode.at(i)))
-// 			{
-// 				channel_it->channel_mode()
-// 			}
-// 		}
+void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
+{
+	std::string						modes = this->_data->getArgs().at(1);
+	std::pair<int, std::string>		hold_message_return;
+	std::string						used_modes;
+	std::string						message_to_send;
+	bool							add_remove = true;
+	std::list<Client>::iterator		member_it;
+	std::string						mode_param = (this->_data->getArgs().size() >= 3 ? this->_data->getArgs().at(2) : "");
+	bool							is_mode_used = false; // check if a mode is seted/removed 
 
-// 	}
-// }
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		if (modes.at(i) == '-')
+		{
+			used_modes += (add_remove == false ? "" : "-");
+			add_remove = false;
+		}
+		else if (modes.at(i) == '+')
+		{
+			used_modes += "+";
+			add_remove = true;
+		}
+		else if (std::strchr("itlk", modes.at(i)))
+		{
+			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+			if (hold_message_return.first == 0)
+				message_to_send += hold_message_return.second;
+			else
+			{
+				is_mode_used = true;
+				used_modes += modes.at(i);
+			}
+		}
+		else if (modes.at(i) == 'o')
+		{
+			if (!mode_param.empty())
+			{
+				member_it = std::find(this->clients.begin(), this->clients.end(), mode_param);
+				if (member_it == this->clients.end())
+					message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param);
+				else
+				{
+					hold_message_return = channel_it->memberMode(client, add_remove, 'o', *member_it);
+					if (hold_message_return.first == 0)
+						message_to_send += hold_message_return.second;
+					else
+					{
+						is_mode_used = true;
+						used_modes += modes.at(i);
+					}
+				}
+			}
+		}
+		else
+			message_to_send += _user_info(client, false) + ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
+	}
+	message_to_send += (is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + mode_param +"\r\n" : "");
+	client.SetMessage(message_to_send);
+	channel_it->sendToAll(client, _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + "\r\n");
+}
 void	Server::mode()
 {
-	// this->PrintCommandData(*(this->_data));
+	// this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
-	const std::string&					target_name = this->_data->getArgs().at(0);
+	const std::string&				target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
 	if (target_name.at(0) == '#')
 	{
 		channel_it = std::find(this->_channels.begin(), this->_channels.end(), target_name);
 		if (channel_it == this->_channels.end())
 			client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target_name));
-		// else
-		// {
-		// 	if (this->_data->getArgs().size() == 1)
-		// 		channel_it->mode(client);
-		// 	else
-		// 	{
-
-		// 	}
-		// }
+		else
+		{
+			if (this->_data->getArgs().size() == 1)
+				channel_it->mode(client);
+			else
+				this->set_remove_mode(client, channel_it);	
+		}
 	}
 	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
@@ -681,7 +820,7 @@ void	Server::privMsg()
 	bool							send_to_operator;
 	bool							send_to_founder;
 	std::list<Channel>::iterator	channel_it;
-	std::vector<Client>::iterator	client_it;
+	std::list<Client>::iterator	client_it;
 	std::string						msg_to_send;
 	std::string						target;
 	if (this->_data->getTarget().size() == 0)
@@ -709,7 +848,7 @@ void	Server::privMsg()
 					target.erase(i, 1);
 				}
 			}
-			channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);
+			channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);	
 			if (channel_it == this->_channels.end())
 				client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target));
 			else
@@ -719,7 +858,7 @@ void	Server::privMsg()
 					channel_it->sendToOperators(client, msg_to_send);
 				else if(send_to_founder)
 					channel_it->sendToFounder(client, msg_to_send);
-				else
+				else 
 					channel_it->sendToAll(client, msg_to_send);
 			}
 		}
@@ -733,13 +872,13 @@ void	Server::privMsg()
 				client_it->SetMessage(msg_to_send);
 		}
 	}
-	std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
+	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 
 void 	Server::topic()
 {
-	this->PrintCommandData(*this->_data);
+	// this->PrintCommandData(*this->_data);
 	Client&							client = this->_data->getClient();
 	std::string						target;
 	std::list<Channel>::iterator	channel_it;
@@ -754,7 +893,7 @@ void 	Server::topic()
 
 void	Server::invite()
 {
-	std::vector<Client>::iterator	target_it;
+	std::list<Client>::iterator	target_it;
 	std::list<Channel>::iterator	channel_it;
 	Client&							client = this->_data->getClient();
 	const std::string&				target = this->_data->getArgs().at(0);
@@ -769,3 +908,32 @@ void	Server::invite()
 	else
 		channel_it->invite(client, *target_it);
 }
+void	Server::kick()
+{
+	std::string						target_name;
+	std::string 					channel_name;
+	std::list<Client>::iterator	target_it;
+	std::list<Channel>::iterator	channel_it;
+	Client&							client = this->_data->getClient();
+	
+	channel_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0));
+	target_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(1) : this->_data->getTarget().at(1));
+	
+	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel_name);
+	target_it = std::find(this->clients.begin(), this->clients.end(), target_name);
+	if (channel_it == this->_channels.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), channel_name));
+	else if (target_it == this->clients.end())
+		client.SetMessage(_user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), target_name));
+	else
+		channel_it->kick(client, *target_it, this->_data->getMessage());
+}
+
+void	Server::user()
+{
+	Client& client = this->_data->getClient();
+	client.SetMessage(_user_info(client, false) + ERR_ALREADYREGISTERED(client.getNick()));
+}
+
+
+/*------------------------ check server connections --------------------------------*/

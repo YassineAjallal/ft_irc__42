@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/18 13:43:32 by yajallal         ###   ########.fr       */
+/*   Updated: 2023/10/28 12:27:26 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,13 +37,17 @@
 
 #define MAX_IRC_CONNECTIONS 75
 #define MAX_SAME_CLIENT_CONNECTIONS 4
-#define MAX_TIMEOUT_DURATION 2
+#define MAX_TIMEOUT_DURATION 3
 #define MAX_IRC_MSGLEN 4096
 #define SRH 1
 
 #define	ERR_NOSUCHNICK(client, nickname)	("401 " + client + " " + nickname + " :No such nick\r\n")
 #define ERR_NORECIPIENT(client, command)	("411 " + client + " :No recipient given (" + command + ")\r\n")
 #define ERR_NOTEXTTOSEND(client)			("412 " + client + " :No text to send\r\n")
+#define ERR_NONICKNAMEGIVEN(client)			("431 " + client + " :No nickname given\r\n")
+#define ERR_ERRONEUSNICKNAME(client, nick)	("432 " + client + " " + nick + " :Erroneus nickname\r\n")
+#define ERR_NICKNAMEINUSE(client, nick)		("433 " + client + " " + nick + " :Nickname is already in use\r\n")
+#define ERR_ALREADYREGISTERED(client)		("462 " + client + " :You may not reregister\r\n")
 
 #define INTRO "Welcome to:\n" \
 "     ██▓ ██▀███   ▄████▄       ██████ ▓█████  ██▀███   ██▒   █▓▓█████  ██▀███	\n" \
@@ -89,7 +93,7 @@ class Server : public AddressData
 	private:
 		size_t						client_count;
 		std::string 				password;
-		std::vector<Client> 		clients;
+		std::list<Client> 		    clients;
 		std::vector<struct pollfd>	c_fd_queue;
 		std::vector<int> 			client_fds;
 		std::string 				raw_data;
@@ -108,7 +112,10 @@ class Server : public AddressData
 		void		OnServerLoop(void);
 		void		OnServerFdQueue(void);
 		void		CloseConnections(void);
-		int			FindClient(int client_fd);
+		int			                FindClient(int client_fd);
+        std::list<Client>::iterator &GetClient(int client_fd);
+        bool        ProccessIncomingData(int client_fd);
+        bool        AcceptIncomingConnections();
 		void		PreformServerCleanup(void);
 		void		CopySockData(int client_fd);
 		void		Authenticate(int client_fd);
@@ -120,7 +127,9 @@ class Server : public AddressData
 		void		SendClientMessage(int client_fd);
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
+        void        SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos);
 		bool        CheckDataValidity(void);
+        int         CheckValidNick(std::string const &name);
 		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
@@ -132,13 +141,21 @@ class Server : public AddressData
 		// void		FindCommand(int client_fd);
 
 		// commands
+		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);
 		void		who();
 		void		nick();
 		void		join();
-		void		kick();
 		void		topic();
 		void		invite();
-		void		mode(); // (in progress)
-		void		quit(int cliet_fd);
+		void		mode();
 		void		privMsg();
+		void		kick();
+		void		user();
+
+    class ClientQuitException : public std::exception {
+        public:
+            virtual const char* what() const throw() {
+                return "ClientQuitException";
+        }
+    };
 };
