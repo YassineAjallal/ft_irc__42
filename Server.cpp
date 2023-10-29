@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 15:29:06 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 15:39:20 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -644,7 +644,6 @@ void	Server::Interpreter(int client_fd)
 	    } else {
 	    	CreateCommandData(client_fd, MSGNOTINCLUDED);
 	    }
-	    PrintCommandData(*(this->_data));
         ExecuteCommand();
         xit->SetBuffer("");
             str_tmp = std::strtok(NULL, "\r\n");
