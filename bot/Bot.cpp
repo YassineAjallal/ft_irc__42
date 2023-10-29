@@ -146,7 +146,6 @@ void Bot::print_roll()
 {
     srand(time(NULL));
     int roll = rand() % 6 + 1;
-    std::cout << roll << std::endl;
     std::string tmp;
     std::stringstream ss(tmp);
     ss << roll;
@@ -223,7 +222,6 @@ void Bot::parse_command(std::string command)
     commands.erase(commands.begin(), it + 1);
     if (this->cmd == "PRIVMSG")
     {
-        std::cout << this->user.at(0) << std::endl;
         if(this->user == "irc_bot")
         {
             buffer = "PRIVMSG "+ this->sender +" :";
