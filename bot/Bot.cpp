@@ -51,7 +51,7 @@ Bot::Bot(const std::string &port, const std::string &pass)
         throw std::runtime_error("socket failed");
     if (connect(this->socket_id, res->ai_addr, res->ai_addrlen))
         throw std::runtime_error("connect failed");
-    std::string tmp = "CAP LS\r\nPASS "+pass+"\r\nNICK irc_bot\r\nUSER irc_bot irc_bot localhost :irc_bot\r\n";
+    std::string tmp = "CAP LS\r\nNICK irc_bot\r\nUSER irc_bot irc_bot localhost :irc_bot\r\nPASS " + pass;
     const char *msg = tmp.c_str();
     send(this->socket_id, msg, strlen(msg), 0);
     join_channesl();

@@ -44,6 +44,6 @@ int main(int ac, char **av)
 		}
 	}
 	else
-		std::cerr << "Usage: ./bot port" << std::endl;
+		std::cerr << "Usage: ./bot port password" << std::endl;
 	return 0;
 }

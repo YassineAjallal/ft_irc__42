@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 10:47:24 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 15:14:38 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,9 +22,11 @@
 #include <map>
 #include <algorithm>
 #include <ctime>
+#include <stdexcept>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/poll.h>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>
@@ -128,7 +130,7 @@ class Server : public AddressData
 		bool		GenerateServerData(const std::string &port);
 		void		InsertSocketFileDescriptorToPollQueue(const int connection_fd);
         void        SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos);
-		bool        CheckDataValidity(void);
+		bool        CheckDataValidity(int client_fd);
         int         CheckValidNick(std::string const &name);
 		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
@@ -139,6 +141,8 @@ class Server : public AddressData
 		void		Interpreter(int client_fd);
         void		CreateCommandData(int client_fd, CommandType type);
         void        ExecuteCommand(void);
+
+        /* ===============Signal Handler============== */
 
 		// commands
 		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);
