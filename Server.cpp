@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 15:39:20 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 18:00:43 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -293,8 +293,7 @@ void 	Server::ReadClientFd(int client_fd) {
 	  to all clients connected.
 */
 void	Server::SendClientMessage(int client_fd) {
-    std::list<Client>::iterator it = clients.begin();
-    std::advance(it, FindClient(client_fd));
+    std::list<Client>::iterator it = GetClient(client_fd);
 
 	if (!it->GetMessageBuffer().empty()) {
 		send(client_fd, it->GetMessageBuffer().c_str(), it->GetMessageBuffer().length(), 0);
@@ -644,6 +643,7 @@ void	Server::Interpreter(int client_fd)
 	    } else {
 	    	CreateCommandData(client_fd, MSGNOTINCLUDED);
 	    }
+        PrintCommandData(*this->_data);
         ExecuteCommand();
         xit->SetBuffer("");
             str_tmp = std::strtok(NULL, "\r\n");
@@ -740,12 +740,15 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 	std::string						modes = this->_data->getArgs().at(1);
 	std::pair<int, std::string>		hold_message_return;
 	std::string						used_modes;
+    std::string                     string_used;
 	std::string						message_to_send;
 	bool							add_remove = true;
 	std::list<Client>::iterator		member_it;
-	std::string						mode_param = (this->_data->getArgs().size() >= 3 ? this->_data->getArgs().at(2) : "");
+	std::vector<std::string>		mode_params;
+    size_t                             params_index = 0;
 	bool							is_mode_used = false; // check if a mode is seted/removed 
-
+    for (size_t i = 2; i < this->_data->getArgs().size(); i++)
+        mode_params.push_back(this->_data->getArgs().at(i));
 	for (size_t i = 0; i < modes.size(); i++)
 	{
 		if (modes.at(i) == '-')
@@ -758,9 +761,25 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 			used_modes += "+";
 			add_remove = true;
 		}
-		else if (std::strchr("itlk", modes.at(i)))
+		else if (std::strchr("lk", modes.at(i)))
 		{
-			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), mode_param);
+            std::string param_to_pass = (params_index < mode_params.size() ? mode_params.at(params_index) : "");
+            if (!(modes.at(i) == 'l' && !add_remove))
+                params_index++;
+			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), param_to_pass);
+			if (hold_message_return.first == 0)
+				message_to_send += hold_message_return.second;
+			else
+			{
+				is_mode_used = true;
+                if (!(modes.at(i) == 'l' && !add_remove))
+                    string_used += param_to_pass + " ";
+				used_modes += modes.at(i);
+			}
+		}
+        else if (std::strchr("it", modes.at(i)))
+		{
+			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), "");
 			if (hold_message_return.first == 0)
 				message_to_send += hold_message_return.second;
 			else
@@ -771,11 +790,13 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 		}
 		else if (modes.at(i) == 'o')
 		{
-			if (!mode_param.empty())
+            std::string param_to_pass = (params_index < mode_params.size() ? mode_params.at(params_index) : "");
+            params_index++;
+			if (!param_to_pass.empty())
 			{
-				member_it = std::find(this->clients.begin(), this->clients.end(), mode_param);
+				member_it = std::find(this->clients.begin(), this->clients.end(), param_to_pass);
 				if (member_it == this->clients.end())
-					message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_param);
+					message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), "");
 				else
 				{
 					hold_message_return = channel_it->memberMode(client, add_remove, 'o', *member_it);
@@ -784,6 +805,7 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 					else
 					{
 						is_mode_used = true;
+                        string_used += param_to_pass + " ";
 						used_modes += modes.at(i);
 					}
 				}
@@ -792,9 +814,9 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 		else
 			message_to_send += _user_info(client, false) + ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
 	}
-	message_to_send += (is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + mode_param +"\r\n" : "");
+	message_to_send += (is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + string_used +"\r\n" : "");
 	client.SetMessage(message_to_send);
-	channel_it->sendToAll(client, _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + "\r\n");
+	channel_it->sendToAll(client, is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + string_used +"\r\n" : "");
 }
 void	Server::mode()
 {

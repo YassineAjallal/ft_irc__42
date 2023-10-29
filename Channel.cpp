@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/28 15:41:12 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 16:35:26 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -253,12 +253,14 @@ std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remov
 			this->_invite_only = add_remove;
 			hold_message_return.first = 1;
 		}
-		else if (mode == 'l' && atoi(param.c_str()) != this->_size)
+		else if (mode == 'l')
 		{
-			if (param.empty())
+			if (param.empty() && add_remove)
 				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "l");
 			else
 			{
+                if ((atoi(param.c_str()) == this->_size && add_remove) || (this->_size == -1 && !add_remove))
+                    return hold_message_return;
 				this->_size = (add_remove ? atoi(param.c_str()) : -1);
 				hold_message_return.first = 1;
 			}
@@ -268,7 +270,7 @@ std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remov
 			this->_topic_priv = add_remove;
 			hold_message_return.first = 1;
 		}
-		else if (mode == 'k' && this->_has_password != add_remove)
+		else if (mode == 'k')
 		{
 			if (param.empty())
 				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "k");
