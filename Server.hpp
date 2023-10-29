@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 15:14:38 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 19:39:44 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,20 @@ struct AddressData {
 		int 				server_socket_fd;
 };
 
+typedef struct s_modes
+{
+	std::pair<int, std::string>		hold_message_return;
+	std::string						used_modes;
+	std::string                     string_used;
+	std::string						message_to_send;
+	std::list<Client>::iterator		member_it;
+	std::vector<std::string>		mode_params;
+	std::string 					param_to_pass;
+	bool							add_remove;
+    size_t                          params_index;
+	bool							is_mode_used; 
+} t_modes;
+
 class Server : public AddressData
 {
 	public:
@@ -145,7 +159,10 @@ class Server : public AddressData
         /* ===============Signal Handler============== */
 
 		// commands
-		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);
+		void		set_remove_mode(Client& client ,std::list<Channel>::iterator& channel_it);
+		void  		limit_password_modes(Client& client, t_modes& mode_var, char mode, std::list<Channel>::iterator& channel_it);
+		void		operator_mode(Client& client, t_modes& mode_var, char mode, std::list<Channel>::iterator& channel_it);
+		void		set_or_remove(t_modes& mode_var, char mode);
 		void		who();
 		void		nick();
 		void		join();

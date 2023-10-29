@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/10/03 17:11:18 by yajallal          #+#    #+#             */
-/*   Updated: 2023/10/29 16:35:26 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 20:14:53 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -225,8 +225,8 @@ void 			Channel::kick(Client &client, Client &kicked, std::string reason)
 		else
 		{
 			this->removeMember(kicked);
-			if (this->_size != -1) 
-				--this->_size;
+			// if (this->_size != -1) 
+			// 	--this->_size;
 			kicked.SetMessage(_user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason) + "\r\n");
 			this->sendToAll(kicked, _user_info(client, true) + " KICK " + this->_name + " " + kicked.getNick() + " :" + (reason.empty() ? "bad content" : reason)  + "\r\n");
 		}
@@ -259,9 +259,13 @@ std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remov
 				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "l");
 			else
 			{
-                if ((atoi(param.c_str()) == this->_size && add_remove) || (this->_size == -1 && !add_remove))
+				int size = atoi(param.c_str());
+                if ((size == this->_size && add_remove) || (this->_size == -1 && !add_remove))
                     return hold_message_return;
-				this->_size = (add_remove ? atoi(param.c_str()) : -1);
+				if (add_remove)
+					this->_size = (size != 0 ? size : this->_size);
+				else	
+					this->_size =  -1;
 				hold_message_return.first = 1;
 			}
 		}
@@ -274,7 +278,7 @@ std::pair<int, std::string>		Channel::channelMode(Client &client, bool add_remov
 		{
 			if (param.empty())
 				send_to_client = _user_info(client, false) + ERR_NEEDMOREPARAMS(client.getNick(), "MODE " + sign + "k");
-			else if (add_remove && this->_has_password)
+			else if ((add_remove && this->_has_password) || (!add_remove && this->_has_password && this->_password != param))
 				send_to_client = _user_info(client, false) + ERR_KEYSET(client.getNick(), this->_name);
 			else
 			{

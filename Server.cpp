@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
+/*   By: yajallal <yajallal@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 18:00:43 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 19:54:32 by yajallal         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -735,89 +735,114 @@ void	Server::who()
 	}
 }
 
-void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
+void	Server::set_or_remove(t_modes& mode_var, char mode)
 {
-	std::string						modes = this->_data->getArgs().at(1);
-	std::pair<int, std::string>		hold_message_return;
-	std::string						used_modes;
-    std::string                     string_used;
-	std::string						message_to_send;
-	bool							add_remove = true;
-	std::list<Client>::iterator		member_it;
-	std::vector<std::string>		mode_params;
-    size_t                             params_index = 0;
-	bool							is_mode_used = false; // check if a mode is seted/removed 
-    for (size_t i = 2; i < this->_data->getArgs().size(); i++)
-        mode_params.push_back(this->_data->getArgs().at(i));
-	for (size_t i = 0; i < modes.size(); i++)
+	if (mode == '-')
 	{
-		if (modes.at(i) == '-')
+		mode_var.used_modes += (mode_var.add_remove == false ? "" : "-");
+		mode_var.add_remove = false;
+	}
+	else if (mode == '+')
+	{
+		mode_var.used_modes += "+";
+		mode_var.add_remove = true;
+	}
+}
+
+void  Server::limit_password_modes(Client& client, t_modes& mode_var, char mode, std::list<Channel>::iterator& channel_it)
+{
+	if (!(mode == 'l' && !mode_var.add_remove))
+	{
+		mode_var.param_to_pass = (mode_var.params_index < mode_var.mode_params.size() ? mode_var.mode_params.at(mode_var.params_index) : "");
+		std::cout << "pass param : " << mode_var.param_to_pass << std::endl;
+		++mode_var.params_index;
+	}
+	mode_var.hold_message_return = channel_it->channelMode(client, mode_var.add_remove, mode, mode_var.param_to_pass);
+	if (mode_var.hold_message_return.first == 0)
+		mode_var.message_to_send += mode_var.hold_message_return.second;
+	else
+	{
+		mode_var.is_mode_used = true;
+		if (!(mode == 'l' && !mode_var.add_remove))
 		{
-			used_modes += (add_remove == false ? "" : "-");
-			add_remove = false;
+			if (mode == 'l')
+			{
+				std::stringstream ss;
+				std::string size;
+				ss << atoi(mode_var.param_to_pass.c_str());
+				ss >> size;
+				mode_var.string_used += size + " ";
+			}
+			else
+				mode_var.string_used += mode_var.param_to_pass + " ";
 		}
-		else if (modes.at(i) == '+')
+		mode_var.used_modes += mode;
+	}
+}
+
+
+void  Server::operator_mode(Client& client, t_modes& mode_var, char mode, std::list<Channel>::iterator& channel_it)
+{
+	mode_var.param_to_pass = (mode_var.params_index < mode_var.mode_params.size() ? mode_var.mode_params.at(mode_var.params_index) : "");
+	++mode_var.params_index;
+	if (!mode_var.param_to_pass.empty())
+	{
+		mode_var.member_it = std::find(this->clients.begin(), this->clients.end(), mode_var.param_to_pass);
+		if (mode_var.member_it == this->clients.end())
+			mode_var.message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), mode_var.param_to_pass);
+		else
 		{
-			used_modes += "+";
-			add_remove = true;
-		}
-		else if (std::strchr("lk", modes.at(i)))
-		{
-            std::string param_to_pass = (params_index < mode_params.size() ? mode_params.at(params_index) : "");
-            if (!(modes.at(i) == 'l' && !add_remove))
-                params_index++;
-			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), param_to_pass);
-			if (hold_message_return.first == 0)
-				message_to_send += hold_message_return.second;
+			mode_var.hold_message_return = channel_it->memberMode(client, mode_var.add_remove, 'o', *mode_var.member_it);
+			if (mode_var.hold_message_return.first == 0)
+				mode_var.message_to_send += mode_var.hold_message_return.second;
 			else
 			{
-				is_mode_used = true;
-                if (!(modes.at(i) == 'l' && !add_remove))
-                    string_used += param_to_pass + " ";
-				used_modes += modes.at(i);
+				mode_var.is_mode_used = true;
+				mode_var.string_used += mode_var.param_to_pass + " ";
+				mode_var.used_modes += mode;
 			}
 		}
+	}
+}
+
+void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator& channel_it)
+{
+	t_modes						    mode_var;
+	std::string						modes = this->_data->getArgs().at(1);
+
+	mode_var.add_remove = true;
+    mode_var.params_index = 0;
+	mode_var.is_mode_used = false;
+    for (size_t i = 2; i < this->_data->getArgs().size(); i++)
+        mode_var.mode_params.push_back(this->_data->getArgs().at(i));
+	for (size_t i = 0; i < modes.size(); i++)
+	{
+		if (std::strchr("+-", modes.at(i)))
+			this->set_or_remove(mode_var, modes.at(i));
+		else if (std::strchr("lk", modes.at(i)))
+			this->limit_password_modes(client, mode_var, modes.at(i), channel_it);
         else if (std::strchr("it", modes.at(i)))
 		{
-			hold_message_return = channel_it->channelMode(client, add_remove, modes.at(i), "");
-			if (hold_message_return.first == 0)
-				message_to_send += hold_message_return.second;
+			mode_var.hold_message_return = channel_it->channelMode(client, mode_var.add_remove, modes.at(i), "");
+			if (mode_var.hold_message_return.first == 0)
+				mode_var.message_to_send += mode_var.hold_message_return.second;
 			else
 			{
-				is_mode_used = true;
-				used_modes += modes.at(i);
+				mode_var.is_mode_used = true;
+				mode_var.used_modes += modes.at(i);
 			}
 		}
 		else if (modes.at(i) == 'o')
-		{
-            std::string param_to_pass = (params_index < mode_params.size() ? mode_params.at(params_index) : "");
-            params_index++;
-			if (!param_to_pass.empty())
-			{
-				member_it = std::find(this->clients.begin(), this->clients.end(), param_to_pass);
-				if (member_it == this->clients.end())
-					message_to_send += _user_info(client, false) + ERR_NOSUCHNICK(client.getNick(), "");
-				else
-				{
-					hold_message_return = channel_it->memberMode(client, add_remove, 'o', *member_it);
-					if (hold_message_return.first == 0)
-						message_to_send += hold_message_return.second;
-					else
-					{
-						is_mode_used = true;
-                        string_used += param_to_pass + " ";
-						used_modes += modes.at(i);
-					}
-				}
-			}
-		}
+			this->operator_mode(client, mode_var, modes.at(i), channel_it);
 		else
-			message_to_send += _user_info(client, false) + ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
+			mode_var.message_to_send += _user_info(client, false) + ERR_UNKNOWNMODE(_user_info(client, false) + client.getNick(), modes.at(i));
 	}
-	message_to_send += (is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + string_used +"\r\n" : "");
-	client.SetMessage(message_to_send);
-	channel_it->sendToAll(client, is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + used_modes + " " + string_used +"\r\n" : "");
+	mode_var.message_to_send += (mode_var.is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + mode_var.used_modes + " " + mode_var.string_used +"\r\n" : "");
+	std::cout << "message to send : " << mode_var.message_to_send << std::endl;
+	client.SetMessage(mode_var.message_to_send);
+	channel_it->sendToAll(client, mode_var.is_mode_used ? _user_info(client, true) + "MODE " + channel_it->getName() + " " + mode_var.used_modes + " " + mode_var.string_used +"\r\n" : "");
 }
+
 void	Server::mode()
 {
 	Client&							client = this->_data->getClient();
