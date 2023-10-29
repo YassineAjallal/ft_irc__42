@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 10:50:48 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 11:04:47 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -364,11 +364,17 @@ int    Server::CheckValidNick(std::string const &name) {
 void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
     Parse Data(*GetClient(client_fd));
 	this->_data = &Data;
+    std::stringstream rand_nick;
     std::vector<std::string> temp_vec;
     
-    Data.setCommand(buf.substr(pos + 5, buf.length()));
+    rand_nick << "1337_USER_" << std::time(NULL);
+    Data.setCommand(buf.substr(pos, buf.length()));
     if (!name.empty())
         temp_vec.push_back(name);
+    else {
+        rand_nick >> const_cast<std::string &>(name);
+        temp_vec.push_back(name);
+    }
     Data.setArgs(temp_vec);
     this->nick();
 }
@@ -403,7 +409,7 @@ void	Server::Authenticate(int client_fd) {
                 else if (((pos = hold_pass.find("NICK", 0)) != std::string::npos)) {
                     hold_nick_temp << hold_pass.substr(pos + start, hold_pass.length());
                     std::getline(hold_nick_temp, hold_user, ' ');
-                    SetNickWrapper(client_fd, hold_user, hold_pass, pos);
+                    SetNickWrapper(client_fd, hold_user, hold_pass, pos + start);
 
                 }
                 else if (((pos = hold_pass.find("USER", 0)) != std::string::npos)) {
