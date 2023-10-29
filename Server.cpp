@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/28 15:42:36 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 10:16:00 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,6 +87,17 @@ bool	Server::GenerateServerData(const std::string &port) {
 */
 bool	Server::CreateServer(const std::string &port, const std::string &pass) {
 	int optval = 1;
+
+    if (std::atol(port.c_str()) <= 0 || std::atol(port.c_str()) > 65535) {
+        std::cerr << "Error: Invalid port number!" << std::endl;
+        return 1;
+    }
+
+    if (pass.empty()) {
+        std::cerr << "Error: Password cannot be empty!" << std::endl;
+        return 1;
+    }
+
 	if (this->GenerateServerData(port))
 		return 1;
 
@@ -235,7 +246,6 @@ std::list<Client>::iterator &Server::GetClient(int client_fd) {
     static std::list<Client>::iterator it;
     it = clients.begin();
 	int found = FindClient(client_fd);
-	// std::cout << "found Client at: " << found << std::endl;
 	if (found < 0)
 		return ((it = clients.end()));
     std::advance(it, found);
@@ -251,14 +261,13 @@ void 	Server::ReadClientFd(int client_fd) {
     _bzero(buf, MAX_IRC_MSGLEN);
     while (SRH) {
         int rb = recv(client_fd, buf, MAX_IRC_MSGLEN, 0);
-        if (rb > 0) {
+        if (rb > 0 && rb < MAX_IRC_MSGLEN) {
             buf[rb] = 0;
             raw_data += buf;
         } else if (rb <= 0) {
             std::list<Client>::iterator it = clients.begin();
             std::advance(it, FindClient(client_fd));
             it->SetBuffer(raw_data);
-            std::cout << "Buffer Read Data from: " << it->getSockID() << "\n" + it->GetBuffer() << std::endl;
             break ;
         }
     }
@@ -355,7 +364,6 @@ int    Server::CheckValidNick(std::string const &name) {
 void    Server::SetNickWrapper(int client_fd, std::string const &name, std::string const &buf, size_t pos) {
     Parse Data(*GetClient(client_fd));
 	this->_data = &Data;
-	std::cout << GetClient(client_fd)->getSockID() << std::endl;
     std::vector<std::string> temp_vec;
     
     Data.setCommand(buf.substr(pos + 5, buf.length()));
@@ -524,8 +532,6 @@ void	Server::OnServerFdQueue(void) {
 			SendClientMessage(c_fd_queue[i].fd);
             send_buffer.clear();
 		}
-        // if (CheckLoginTimeout(c_fd_queue[i].fd))
-        //     return ;
 	}
 }
 
@@ -579,7 +585,6 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
     std::vector<std::string> args;
     std::vector<std::string> targets;
     
-	//str.replace(str.find("\r\n"), 2, "");
     targets.clear();
     char    *token = std::strtok(const_cast<char *>(str.c_str()), " ");
     if (token)
@@ -616,6 +621,23 @@ void  	Server::CreateCommandData(int client_fd, CommandType type) {
     this->_data->setType(type);
 }
 
+void    Server::ExecuteCommand(void) {
+    std::string cmd_list[9] = { "NICK", "JOIN", "WHO", "MODE", "PRIVMSG", "TOPIC", "INVITE", "KICK", "USER" };
+    void    (Server::*func[9])(void) = { &Server::nick, &Server::join, &Server::who, &Server::mode, &Server::privMsg, &Server::topic, &Server::invite, &Server::kick, &Server::user };
+
+    if (this->_data->getCommand() == "QUIT") {
+        raw_data.clear();
+        delete this->_data;
+        throw(Server::ClientQuitException());
+    }
+    for (int i = 0; i < 9; i++) {
+        if (this->_data->getCommand() == cmd_list[i]) {
+            (this->*func[i])();
+            return ;
+        }
+    }
+}
+
 /*
 	- Note to self: Tokenizer seems somewhat done. All i need to do now is
 	to parse more
@@ -635,33 +657,12 @@ void	Server::Interpreter(int client_fd)
 	    	CreateCommandData(client_fd, MSGNOTINCLUDED);
 	    }
 	    PrintCommandData(*(this->_data));
-	    if (this->_data->getCommand() == "NICK")
-	    	this->nick();
-	    else if (this->_data->getCommand() == "JOIN")
-	    	this->join();
-	    else if (this->_data->getCommand() == "WHO")
-	    	this->who();
-	    else if (this->_data->getCommand() == "MODE")
-	    	this->mode();
-	    else if (this->_data->getCommand() == "PRIVMSG")
-	    	this->privMsg();
-	    else if (this->_data->getCommand() == "TOPIC")
-	    	this->topic();
-	    else if (this->_data->getCommand() == "INVITE")
-	    	this->invite();
-	    else if (this->_data->getCommand() == "KICK")
-	    	this->kick();
-        else if (this->_data->getCommand() == "QUIT") {
-            delete this->_data;
-            throw(Server::ClientQuitException());
-        }
-	    else if (this->_data->getCommand() == "USER")
-	    	this->user();
-	    raw_data.clear();
-	    xit->SetBuffer("");
+        ExecuteCommand();
+        xit->SetBuffer("");
             str_tmp = std::strtok(NULL, "\r\n");
     }
     delete this->_data;
+    raw_data.clear();
 }
 
 void	Server::nick()
@@ -745,7 +746,6 @@ void	Server::who()
 				client.SetMessage(_user_info(client, false) + RPL_ENDOFWHO(client.getNick(), first_arg_type));
 		}
 	}
-	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it)
@@ -811,7 +811,6 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 }
 void	Server::mode()
 {
-	// this->PrintCommandData(*(this->_data));   
 	Client&							client = this->_data->getClient();
 	const std::string&				target_name = this->_data->getArgs().at(0);
 	std::list<Channel>::iterator	channel_it;
@@ -828,7 +827,6 @@ void	Server::mode()
 				this->set_remove_mode(client, channel_it);	
 		}
 	}
-	// std::cout << "Command -> " << this->_data->getCommand() << "\nmessage to send : " << client.GetMessageBuffer() << std::endl;
 }
 
 void	Server::privMsg()

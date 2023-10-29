@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/28 12:27:26 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/28 15:50:28 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,12 +133,11 @@ class Server : public AddressData
 		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
 		/* ===============Interpreter================ */
-		// void		PONG(int client_fd);
 		
         void        PrintCommandData(Parse &Data);
 		void		Interpreter(int client_fd);
         void		CreateCommandData(int client_fd, CommandType type);
-		// void		FindCommand(int client_fd);
+        void        ExecuteCommand(void);
 
 		// commands
 		void		set_remove_mode(Client& client ,std::list<Channel>::iterator channel_it);

@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 13:27:07 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/28 15:41:59 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 10:16:50 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,15 +20,7 @@
 #include "Server.hpp"
 #include "Channel.hpp"
 
-/*
-	- Ports under 1024 are reserved
-	and don't go over 65535 port number.
-	
-	- Make sure to check if the port
-	doesn't contain invalid characters.
-*/
-
-int main(int __unused ac, char __unused **av) {
+int main(int ac, char  **av) {
 	if (ac == 3) {
 		Server ServerHandler;
 		if (ServerHandler.CreateServer(av[1], av[2]))
