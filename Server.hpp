@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 15:09:17 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/28 15:50:28 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 10:47:24 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -132,6 +132,7 @@ class Server : public AddressData
         int         CheckValidNick(std::string const &name);
 		bool        CheckLoginTimeout(int client_fd);
 		bool        CheckConnectDataValidity(int client_fd);
+        std::string CheckArgsValidity(bool flag, size_t index);
 		/* ===============Interpreter================ */
 		
         void        PrintCommandData(Parse &Data);

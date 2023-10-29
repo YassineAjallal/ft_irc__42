@@ -6,7 +6,7 @@
 /*   By: hmeftah <hmeftah@student.1337.ma>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/09/24 16:17:16 by hmeftah           #+#    #+#             */
-/*   Updated: 2023/10/29 10:16:00 by hmeftah          ###   ########.fr       */
+/*   Updated: 2023/10/29 10:50:48 by hmeftah          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -656,7 +656,7 @@ void	Server::Interpreter(int client_fd)
 	    } else {
 	    	CreateCommandData(client_fd, MSGNOTINCLUDED);
 	    }
-	    PrintCommandData(*(this->_data));
+	    // PrintCommandData(*(this->_data));
         ExecuteCommand();
         xit->SetBuffer("");
             str_tmp = std::strtok(NULL, "\r\n");
@@ -700,7 +700,7 @@ void	Server::join()
 	std::list<Channel>::iterator	channel_it;
 	Client&							client = this->_data->getClient();
 
-	channel_name = this->_data->getArgs().at(0);
+	channel_name =  CheckArgsValidity(true, 0) ;
 	channel_password = ( this->_data->getArgs().size() == 2 ? this->_data->getArgs().at(1) : "");
 	channel_it = std::find((*this)._channels.begin(), (*this)._channels.end(), channel_name);
 	if (channel_it != (*this)._channels.end())
@@ -812,7 +812,7 @@ void	Server::set_remove_mode(Client& client ,std::list<Channel>::iterator channe
 void	Server::mode()
 {
 	Client&							client = this->_data->getClient();
-	const std::string&				target_name = this->_data->getArgs().at(0);
+	const std::string&				target_name = CheckArgsValidity(true, 0);
 	std::list<Channel>::iterator	channel_it;
 	if (target_name.at(0) == '#')
 	{
@@ -893,12 +893,11 @@ void	Server::privMsg()
 
 void 	Server::topic()
 {
-	// this->PrintCommandData(*this->_data);
 	Client&							client = this->_data->getClient();
 	std::string						target;
 	std::list<Channel>::iterator	channel_it;
 
-	target = this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0);
+	target = this->_data->getMessage().empty() ? CheckArgsValidity(true, 0) : CheckArgsValidity(false, 0);
 	channel_it = std::find(this->_channels.begin(), this->_channels.end(), target);
 	if (channel_it == this->_channels.end())
 		client.SetMessage(_user_info(client, false) + ERR_NOSUCHCHANNEL(client.getNick(), target));
@@ -911,8 +910,8 @@ void	Server::invite()
 	std::list<Client>::iterator	target_it;
 	std::list<Channel>::iterator	channel_it;
 	Client&							client = this->_data->getClient();
-	const std::string&				target = this->_data->getArgs().at(0);
-	const std::string&				channel = this->_data->getArgs().at(1);
+	const std::string&				target = CheckArgsValidity(true, 0);
+	const std::string&				channel = CheckArgsValidity(true, 1);
 
 	target_it = std::find(this->clients.begin(), this->clients.end(), target);
 	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel);
@@ -931,8 +930,8 @@ void	Server::kick()
 	std::list<Channel>::iterator	channel_it;
 	Client&							client = this->_data->getClient();
 	
-	channel_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(0) : this->_data->getTarget().at(0));
-	target_name = (this->_data->getMessage().empty() ? this->_data->getArgs().at(1) : this->_data->getTarget().at(1));
+	channel_name = (this->_data->getMessage().empty() ? CheckArgsValidity(true, 0) : CheckArgsValidity(false, 0)); // bad content
+	target_name = (this->_data->getMessage().empty() ? CheckArgsValidity(true, 1) : CheckArgsValidity(false, 1)); // target
 	
 	channel_it = std::find(this->_channels.begin(), this->_channels.end(), channel_name);
 	target_it = std::find(this->clients.begin(), this->clients.end(), target_name);
@@ -950,5 +949,15 @@ void	Server::user()
 	client.SetMessage(_user_info(client, false) + ERR_ALREADYREGISTERED(client.getNick()));
 }
 
+
+std::string Server::CheckArgsValidity(bool flag, size_t index) {
+    std::string ret;
+    if (flag == true) { // args
+        ret = (this->_data->getArgs().size() > index ? this->_data->getArgs().at(index) : "NON_EXISITING_ELEMENT");
+    } else if (flag == false) { // targets
+        ret = (this->_data->getTarget().size() > index ? this->_data->getTarget().at(index) : "NON_EXISITING_ELEMENT");
+    }
+    return ret;
+}
 
 /*------------------------ check server connections --------------------------------*/
