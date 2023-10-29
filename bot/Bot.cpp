@@ -149,7 +149,7 @@ void Bot::print_roll()
     std::string tmp;
     std::stringstream ss(tmp);
     ss << roll;
-    buffer += "rollin' the dice: \r\n";
+    buffer += "rollin' the dice: ";
     buffer += "you rolled a ";
     buffer += ss.str();
     buffer += "\r\n";
